@@ -1,0 +1,7 @@
+﻿dataOriginal/
+data/
+models/
+forecasts/
+__pycache__/
+.venv/
+/dataOriginal
