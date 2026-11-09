@@ -86,3 +86,48 @@ stages:
       - requirements/tools.lock
     outs:
       - data/evaluation/baseline-dev-v1
+  ml_backtest:
+    cmd: >-
+      python -m src.evaluate_ml
+      --context data/evaluation/dev-context-v1
+      --baseline-config config/baseline.json
+      --config config/ml.json
+      --output data/evaluation/ml-dev-v1
+    deps:
+      - data/evaluation/dev-context-v1
+      - config/baseline.json
+      - config/ml.json
+      - src/features.py
+      - src/ml.py
+      - src/evaluate_ml.py
+      - src/evaluation.py
+      - src/baseline.py
+      - src/metrics.py
+      - src/snapshot.py
+      - src/deliveries.py
+      - src/ingest.py
+      - src/replay.py
+      - src/validate_snapshot.py
+      - requirements/tools.lock
+      - docker/ml/requirements.lock
+      - docker/ml/Dockerfile
+    outs:
+      - data/evaluation/ml-dev-v1
+  model_comparison:
+    cmd: >-
+      python -m src.selection
+      --baseline data/evaluation/baseline-dev-v1/metrics.json
+      --candidate data/evaluation/ml-dev-v1/metrics.json
+      --policy config/model-selection.json
+      --output data/evaluation/comparison-v1
+    deps:
+      - data/evaluation/baseline-dev-v1
+      - data/evaluation/ml-dev-v1
+      - config/model-selection.json
+      - src/selection.py
+      - src/baseline.py
+      - src/deliveries.py
+      - src/ingest.py
+      - requirements/tools.lock
+    outs:
+      - data/evaluation/comparison-v1

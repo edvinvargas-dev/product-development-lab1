@@ -1,6 +1,6 @@
 # Laboratorio 1: motor de reposición
 
-Estado: auditoría, ingesta temporal, entorno Linux, baseline de cuantiles y evaluación temporal de desarrollo con DVC local. El producto completo y Airflow aún no están implementados. Decisiones y supuestos en [DECISIONES.md](DECISIONES.md); requisitos pendientes en [docs/ACEPTACION.md](docs/ACEPTACION.md).
+Estado: ingesta temporal, baseline, primer ML híbrido y comparación de desarrollo con DVC local. El producto completo y Airflow aún no están implementados. Decisiones y supuestos en [DECISIONES.md](DECISIONES.md); requisitos pendientes en [docs/ACEPTACION.md](docs/ACEPTACION.md).
 
 ## Recorrido disponible
 
@@ -46,7 +46,7 @@ El primer comando construye las herramientas con las versiones de `requirements/
 docker compose -f compose.tools.yaml run --rm tools dvc repro baseline_predict
 ```
 
-El baseline usa ventas recientes del mismo día de semana y genera cuantiles 0.1/0.5/0.9 por tienda/familia para siete días posteriores al corte. El [tutorial del baseline](docs/BASELINE.md) explica ventana, respaldo por historia insuficiente y artefactos. El modelo está en `models/baseline-demo/` y el pronóstico en `forecasts/baseline-demo/`, ambos bajo DVC y fuera de Git. Todavía no hay comparación temporal con ML ni pedidos basados en costos.
+El baseline usa ventas recientes del mismo día de semana y genera cuantiles 0.1/0.5/0.9 por tienda/familia para siete días posteriores al corte. El [tutorial del baseline](docs/BASELINE.md) explica ventana, respaldo por historia insuficiente y artefactos. El modelo está en `models/baseline-demo/` y el pronóstico en `forecasts/baseline-demo/`, ambos bajo DVC y fuera de Git. Ya hay comparación temporal con el candidato ML; los pedidos basados en costos siguen pendientes.
 
 ## Evaluación temporal de desarrollo
 
@@ -56,7 +56,19 @@ Con la nueva bandeja de evaluación preparada:
 docker compose -f compose.tools.yaml run --rm tools dvc repro baseline_backtest
 ```
 
-Se evalúan cuatro cortes semanales de julio con casos, snapshots y reales congelados. Los resultados por corte y globales se guardan en `data/evaluation/baseline-dev-v1/metrics.json`, bajo DVC. El [tutorial de evaluación](docs/EVALUACION_TEMPORAL.md) contiene la preparación desde cero y explica MAE, WAPE, pinball y cobertura. El contexto común de `data/evaluation/dev-context-v1/` se reutilizará al añadir ML; los reales posteriores al corte nunca se entregan a la función de ajuste.
+Se evalúan cuatro cortes semanales de julio con casos, snapshots y reales congelados. Los resultados por corte y globales se guardan en `data/evaluation/baseline-dev-v1/metrics.json`, bajo DVC. El [tutorial de evaluación](docs/EVALUACION_TEMPORAL.md) contiene la preparación desde cero y explica MAE, WAPE, pinball y cobertura. El contexto común de `data/evaluation/dev-context-v1/` se reutiliza en la evaluación ML; los reales posteriores al corte nunca se entregan a la función de ajuste.
+
+## Primer ML y comparación
+
+```bash
+docker compose -f compose.tools.yaml build ml
+docker compose -f compose.tools.yaml run --rm ml
+docker compose -f compose.tools.yaml run --rm ml dvc repro model_comparison
+```
+
+La imagen `ml` añade cinco dependencias científicas sin actualizar las 117 de `tools`. Usar `ml` para ejecutar la suite completa, incluido el modelo. Se conservan los mismos casos del baseline. El candidato mantiene q50 y aprende q10/q90 con boosting; redujo el pinball medio un 5.1189 %, con MAE idéntico y cobertura de 64.2296 %.
+
+Pasó el criterio técnico registrado antes de entrenar, pero no se promovió: faltan calibración suficiente, holdout y costos. Ver [MODELO_ML.md](docs/MODELO_ML.md) para diseño, variables, resultados por corte y reproducción de los modelos guardados. Los artefactos están en `data/evaluation/ml-dev-v1/` y `comparison-v1/`, bajo DVC local, fuera de Git.
 
 ## Entorno verificado
 
@@ -76,7 +88,7 @@ El remoto DVC existente es Google Drive; no se ha probado una descarga desde WSL
 
 1. Completado: escenario conservador, carga histórica inicial, bandeja inmutable, registro y selección por corte; pruebas de retrasos/correcciones/replay.
 2. Entorno de herramientas Linux y referencias DVC locales de entradas/procesados de demostración. Pendientes: validaciones entre fuentes, calendario de polling y publicación autorizada de artefactos nuevos al remoto.
-3. Baseline de cuantiles y evaluación temporal de desarrollo implementados. Pendientes: ML bajo el mismo contexto, costos configurables, evaluación de negocio y regla de sustitución.
+3. Baseline, ML y comparación bajo el mismo contexto implementados, con criterio técnico previo. Pendientes: calibración/holdout, costos configurables y evaluación de negocio para sustituir el modelo vigente.
 4. Recomendaciones de abastecimiento y seguimiento de publicaciones.
 5. Airflow 3, Compose, pytest/CI, documentación de reconstrucción y evidencias completas.
 6. GitHub y protección mediante acciones autorizadas, revisión de aceptación y tag local de entrega.

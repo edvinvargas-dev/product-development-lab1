@@ -28,3 +28,16 @@ services:
         source: /dev/null
         target: /workspace/.dvc/config.local
         read_only: true
+  ml:
+    extends:
+      service: tools
+    image: laboratorio1-ml:py312
+    build:
+      context: ./docker/ml
+      dockerfile: Dockerfile
+      additional_contexts:
+        tools_base: service:tools
+    environment:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"

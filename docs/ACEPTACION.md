@@ -16,7 +16,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [ ] Airflow 3 en Compose: ingesta/validación, preparación, pronóstico/pedido y seguimiento (p. 2).
 - [ ] Idempotencia, rechazo de datos inválidos y tratamiento explícito de ausencias esperables (p. 2).
 - [ ] Backfill y reprocesamiento de correcciones, módulos probados y DAGs delgados (p. 3).
-- [ ] Baseline y ML que lo mejore, validación temporal idéntica (p. 3).
+- [x] Baseline y ML híbrido que mejora pinball con validación temporal idéntica de desarrollo; calibración/holdout y negocio pendientes (p. 3).
 - [ ] Métricas técnicas y de costo, criterio explícito de sustitución (p. 3).
 - [ ] README completo y decisiones justificadas sobre disponibilidad, validación y correcciones (p. 3).
 - [ ] Ejecución sobre período no publicado sin intervención manual (p. 3).
@@ -30,3 +30,5 @@ Avance de la etapa 3: entorno Linux de herramientas con pytest, referencias DVC 
 Avance de la etapa 4: baseline de cuantiles por tienda/familia, modelo y pronóstico de demostración en DVC local, validación conjunta y 23 pruebas. Horizonte de siete días implementado como propuesta provisional. Todavía faltan ML/comparación temporal, costos/pedidos, seguimiento, registro de publicaciones, publicación remota y evidencias finales. Rama local creada e identidad de autor confirmada para registrar el punto de control local.
 
 Avance de la etapa 5: evaluación de desarrollo con cuatro cortes sin fuga temporal, contexto/casos congelados para compartir con ML, 49,896 casos puntuados y métricas técnicas por corte/globales. Pasaron 37 pruebas; hay casos de correcciones, reales pendientes y equivalencia del replay. Cobertura observada 57.3212 % frente al 80 % nominal: calibración pendiente de mejora. Modelos, pronósticos, reales preparados y métricas están en DVC local. Siguen pendientes el ML que mejore al baseline, costos/métrica de negocio y el resto de requisitos operativos/remotos.
+
+Avance de la etapa 6: criterio registrado antes del entrenamiento (`2f765f6`), ML para q10/q90 con mediana baseline y 33 variables de las cinco fuentes/calendario. Mismos 49,896 casos; pinball mejora 5.1189 % y gana tres de cuatro cortes, sin alterar MAE. Cobertura 64.2296 % todavía insuficiente para la tolerancia operativa. Pasaron 43 pruebas y se reprodujeron los cuatro pronósticos desde modelos DVC; se auditaron 368,874 ejemplos temporales. No hay promoción operativa: faltan calibración/holdout y costo de negocio, además de pedidos, seguimiento, Airflow, CI/remoto y evidencia final.

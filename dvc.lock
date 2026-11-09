@@ -264,3 +264,151 @@ stages:
       md5: a17de3c39d99817fef96f71b092acec4.dir
       size: 36433034
       nfiles: 22
+  ml_backtest:
+    cmd: python -m src.evaluate_ml --context data/evaluation/dev-context-v1 
+      --baseline-config config/baseline.json --config config/ml.json --output 
+      data/evaluation/ml-dev-v1
+    deps:
+    - path: config/baseline.json
+      hash: md5
+      md5: 744ed0bf79030d837dd94390bc6be97e
+      size: 146
+      isexec: true
+    - path: config/ml.json
+      hash: md5
+      md5: 744f155ad06c9a9bc2641f192f925a6e
+      size: 488
+      isexec: true
+    - path: data/evaluation/dev-context-v1
+      hash: md5
+      md5: ae2b179e79eb6cffbbb7e0002ff30783.dir
+      size: 20797926
+      nfiles: 41
+    - path: docker/ml/Dockerfile
+      hash: md5
+      md5: 5b552a240b2ecb1503e140d05346b255
+      size: 303
+      isexec: true
+    - path: docker/ml/requirements.lock
+      hash: md5
+      md5: 39280956891caef321f5a610ae418438
+      size: 165
+      isexec: true
+    - path: requirements/tools.lock
+      hash: md5
+      md5: 6239b3f0f6c0406d721e41f6ca141bc8
+      size: 2144
+      isexec: true
+    - path: src/baseline.py
+      hash: md5
+      md5: 828f351c838520a42e40e0ff2b63a756
+      size: 8703
+      isexec: true
+    - path: src/deliveries.py
+      hash: md5
+      md5: 54db95ffb20999a890671cdcfd623434
+      size: 6436
+      isexec: true
+    - path: src/evaluate_ml.py
+      hash: md5
+      md5: 0876a91bb8c1f5fb145df3db1bf68e75
+      size: 4032
+      isexec: true
+    - path: src/evaluation.py
+      hash: md5
+      md5: e6f5fc1dd68c91823bc050dd7e401cc2
+      size: 10524
+      isexec: true
+    - path: src/features.py
+      hash: md5
+      md5: 1919fc360733cd34d3e257ee26e236c5
+      size: 7579
+      isexec: true
+    - path: src/ingest.py
+      hash: md5
+      md5: 1ecb98cd884dd99fa79a196eba8765ca
+      size: 4595
+      isexec: true
+    - path: src/metrics.py
+      hash: md5
+      md5: 4786851db79c1b5964e9a77892430be6
+      size: 5806
+      isexec: true
+    - path: src/ml.py
+      hash: md5
+      md5: 6ac85ad780132f0bd17fda7b751b5d10
+      size: 10267
+      isexec: true
+    - path: src/replay.py
+      hash: md5
+      md5: 79094dd0efa7d03e34cd54a5fb5c251f
+      size: 1786
+      isexec: true
+    - path: src/snapshot.py
+      hash: md5
+      md5: 4c18a3514828b2172581df3515068eee
+      size: 5198
+      isexec: true
+    - path: src/validate_snapshot.py
+      hash: md5
+      md5: 235f9ef2b45252679d1efe738a4c38ee
+      size: 5853
+      isexec: true
+    outs:
+    - path: data/evaluation/ml-dev-v1
+      hash: md5
+      md5: d6770eb4fcfd09301f15be1f8436753f.dir
+      size: 71125697
+      nfiles: 30
+  model_comparison:
+    cmd: python -m src.selection --baseline 
+      data/evaluation/baseline-dev-v1/metrics.json --candidate 
+      data/evaluation/ml-dev-v1/metrics.json --policy 
+      config/model-selection.json --output data/evaluation/comparison-v1
+    deps:
+    - path: config/model-selection.json
+      hash: md5
+      md5: dad997300f2d6ed93e46b8b4a8bb3b9a
+      size: 456
+      isexec: true
+    - path: data/evaluation/baseline-dev-v1
+      hash: md5
+      md5: a17de3c39d99817fef96f71b092acec4.dir
+      size: 36433034
+      nfiles: 22
+    - path: data/evaluation/ml-dev-v1
+      hash: md5
+      md5: d6770eb4fcfd09301f15be1f8436753f.dir
+      size: 71125697
+      nfiles: 30
+    - path: requirements/tools.lock
+      hash: md5
+      md5: 6239b3f0f6c0406d721e41f6ca141bc8
+      size: 2144
+      isexec: true
+    - path: src/baseline.py
+      hash: md5
+      md5: 828f351c838520a42e40e0ff2b63a756
+      size: 8703
+      isexec: true
+    - path: src/deliveries.py
+      hash: md5
+      md5: 54db95ffb20999a890671cdcfd623434
+      size: 6436
+      isexec: true
+    - path: src/ingest.py
+      hash: md5
+      md5: 1ecb98cd884dd99fa79a196eba8765ca
+      size: 4595
+      isexec: true
+    - path: src/selection.py
+      hash: md5
+      md5: e4b6e8ccb111ea4714c3fb074bfe1674
+      size: 4687
+      isexec: true
+    outs:
+    - path: data/evaluation/comparison-v1
+      hash: md5
+      md5: f2b0026f1da5dfe7ac6fbd9b6c7988dd.dir
+      size: 1995
+      nfiles: 1
