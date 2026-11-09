@@ -1,0 +1,2 @@
+# DVC genera espacios al envolver las órdenes YAML; conservar su formato.
+dvc.lock whitespace=-blank-at-eol

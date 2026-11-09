@@ -1,0 +1,6 @@
+outs:
+- path: data/ingestion/conservador-demo-v1.json
+  md5: f3ca11dbeb26a1bbeb516f909ae59e95
+  size: 75645
+  isexec: true
+  hash: md5

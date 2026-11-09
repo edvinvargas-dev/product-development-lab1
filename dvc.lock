@@ -1,0 +1,134 @@
+schema: '2.0'
+stages:
+  snapshot_demo:
+    cmd: python -m src.snapshot --inbox data/scenarios/conservador-demo-v1/inbox
+      --ledger data/ingestion/conservador-demo-v1.json --cutoff 
+      2017-08-01T13:00:00Z --output data/processed/dvc-demo/2017-08-01
+    deps:
+    - path: data/ingestion/conservador-demo-v1.json
+      hash: md5
+      md5: f3ca11dbeb26a1bbeb516f909ae59e95
+      size: 75645
+      isexec: true
+    - path: data/scenarios/conservador-demo-v1/inbox
+      hash: md5
+      md5: cb59770ccbe29dad55ea688975c15424.dir
+      size: 2904882
+      nfiles: 154
+    - path: docker/tools.Dockerfile
+      hash: md5
+      md5: 29467c3ff1a0d9703c97a567ecd86c47
+      size: 662
+      isexec: true
+    - path: requirements/tools.lock
+      hash: md5
+      md5: 6239b3f0f6c0406d721e41f6ca141bc8
+      size: 2144
+      isexec: true
+    - path: src/deliveries.py
+      hash: md5
+      md5: 54db95ffb20999a890671cdcfd623434
+      size: 6436
+      isexec: true
+    - path: src/ingest.py
+      hash: md5
+      md5: 1ecb98cd884dd99fa79a196eba8765ca
+      size: 4595
+      isexec: true
+    - path: src/snapshot.py
+      hash: md5
+      md5: 4c18a3514828b2172581df3515068eee
+      size: 5198
+      isexec: true
+    outs:
+    - path: data/processed/dvc-demo/2017-08-01
+      hash: md5
+      md5: 0f22504a6b291ed46adea2ac48bff206.dir
+      size: 2377316
+      nfiles: 6
+  baseline_fit:
+    cmd: python -m src.baseline fit --snapshot 
+      data/processed/dvc-demo/2017-08-01 --config config/baseline.json --output 
+      models/baseline-demo
+    deps:
+    - path: config/baseline.json
+      hash: md5
+      md5: 744ed0bf79030d837dd94390bc6be97e
+      size: 146
+      isexec: true
+    - path: data/processed/dvc-demo/2017-08-01
+      hash: md5
+      md5: 0f22504a6b291ed46adea2ac48bff206.dir
+      size: 2377316
+      nfiles: 6
+    - path: requirements/tools.lock
+      hash: md5
+      md5: 6239b3f0f6c0406d721e41f6ca141bc8
+      size: 2144
+      isexec: true
+    - path: src/baseline.py
+      hash: md5
+      md5: 828f351c838520a42e40e0ff2b63a756
+      size: 8703
+      isexec: true
+    - path: src/deliveries.py
+      hash: md5
+      md5: 54db95ffb20999a890671cdcfd623434
+      size: 6436
+      isexec: true
+    - path: src/ingest.py
+      hash: md5
+      md5: 1ecb98cd884dd99fa79a196eba8765ca
+      size: 4595
+      isexec: true
+    - path: src/validate_snapshot.py
+      hash: md5
+      md5: 235f9ef2b45252679d1efe738a4c38ee
+      size: 5853
+      isexec: true
+    outs:
+    - path: models/baseline-demo
+      hash: md5
+      md5: d93f39426cfb6fb83c8d9e312ee53237.dir
+      size: 2554697
+      nfiles: 3
+  baseline_predict:
+    cmd: python -m src.baseline predict --model models/baseline-demo --output 
+      forecasts/baseline-demo
+    deps:
+    - path: models/baseline-demo
+      hash: md5
+      md5: d93f39426cfb6fb83c8d9e312ee53237.dir
+      size: 2554697
+      nfiles: 3
+    - path: requirements/tools.lock
+      hash: md5
+      md5: 6239b3f0f6c0406d721e41f6ca141bc8
+      size: 2144
+      isexec: true
+    - path: src/baseline.py
+      hash: md5
+      md5: 828f351c838520a42e40e0ff2b63a756
+      size: 8703
+      isexec: true
+    - path: src/deliveries.py
+      hash: md5
+      md5: 54db95ffb20999a890671cdcfd623434
+      size: 6436
+      isexec: true
+    - path: src/ingest.py
+      hash: md5
+      md5: 1ecb98cd884dd99fa79a196eba8765ca
+      size: 4595
+      isexec: true
+    - path: src/validate_snapshot.py
+      hash: md5
+      md5: 235f9ef2b45252679d1efe738a4c38ee
+      size: 5853
+      isexec: true
+    outs:
+    - path: forecasts/baseline-demo
+      hash: md5
+      md5: cb40cb5dfa51b851876710fb24f45f8c.dir
+      size: 5467543
+      nfiles: 3

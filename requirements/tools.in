@@ -1,0 +1,8 @@
+# Compatibilidad conservada del entorno conocido; instalación aislada en Linux.
+pip==25.3
+dvc[gdrive]==3.67.1
+dvc-gdrive==3.0.1
+pyOpenSSL==24.2.1
+cryptography==43.0.3
+asyncssh==2.22.0
+pytest==8.3.5

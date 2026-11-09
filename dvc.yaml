@@ -1,0 +1,48 @@
+stages:
+  snapshot_demo:
+    cmd: >-
+      python -m src.snapshot
+      --inbox data/scenarios/conservador-demo-v1/inbox
+      --ledger data/ingestion/conservador-demo-v1.json
+      --cutoff 2017-08-01T13:00:00Z
+      --output data/processed/dvc-demo/2017-08-01
+    deps:
+      - data/scenarios/conservador-demo-v1/inbox
+      - data/ingestion/conservador-demo-v1.json
+      - src/deliveries.py
+      - src/ingest.py
+      - src/snapshot.py
+      - requirements/tools.lock
+      - docker/tools.Dockerfile
+    outs:
+      - data/processed/dvc-demo/2017-08-01
+  baseline_fit:
+    cmd: >-
+      python -m src.baseline fit
+      --snapshot data/processed/dvc-demo/2017-08-01
+      --config config/baseline.json
+      --output models/baseline-demo
+    deps:
+      - data/processed/dvc-demo/2017-08-01
+      - config/baseline.json
+      - src/baseline.py
+      - src/validate_snapshot.py
+      - src/deliveries.py
+      - src/ingest.py
+      - requirements/tools.lock
+    outs:
+      - models/baseline-demo
+  baseline_predict:
+    cmd: >-
+      python -m src.baseline predict
+      --model models/baseline-demo
+      --output forecasts/baseline-demo
+    deps:
+      - models/baseline-demo
+      - src/baseline.py
+      - src/validate_snapshot.py
+      - src/deliveries.py
+      - src/ingest.py
+      - requirements/tools.lock
+    outs:
+      - forecasts/baseline-demo

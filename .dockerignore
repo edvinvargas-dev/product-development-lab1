@@ -1,0 +1,7 @@
+# Contexto de construcción por lista permitida: no enviar datos ni credenciales.
+**
+!docker/
+!docker/tools.Dockerfile
+!requirements/
+!requirements/tools.in
+!requirements/tools.lock

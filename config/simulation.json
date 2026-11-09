@@ -1,0 +1,18 @@
+{
+  "scenario_id": "conservador-demo-v1",
+  "description": "Supuestos sintéticos, no horarios observados de Favorita. UTC.",
+  "history_start": "2017-07-01",
+  "history_end": "2017-07-31",
+  "delivery_end": "2017-08-07",
+  "availability_hour_utc": 12,
+  "lag_days": {
+    "train": 1,
+    "stores": 0,
+    "holidays_events": 1,
+    "oil": 2,
+    "transactions": 2
+  },
+  "delays": [
+    {"source": "transactions", "data_date": "2017-08-02", "extra_days": 2}
+  ]
+}

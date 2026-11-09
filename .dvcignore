@@ -1,3 +1,14 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# Entornos locales, credenciales y archivos auxiliares no son datos DVC.
+.venv/
+.venv-wsl/
+.aws/
+.agents/
+.codex/
+__pycache__/
+.ipynb_checkpoints/
+.pytest_cache/
+reports/generated/

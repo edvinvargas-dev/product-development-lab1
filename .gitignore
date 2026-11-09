@@ -1,7 +1,14 @@
-﻿dataOriginal/
+dataOriginal/
 data/
 models/
 forecasts/
 __pycache__/
 .venv/
 /dataOriginal
+.venv-wsl/
+.ipynb_checkpoints/
+.pytest_cache/
+.dvc/config.local
+reports/generated/
+# Se conserva el original local; versionar solo la copia sin resultados.
+/analisis_exploratorio.ipynb
