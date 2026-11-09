@@ -46,3 +46,43 @@ stages:
       - requirements/tools.lock
     outs:
       - forecasts/baseline-demo
+  evaluation_context:
+    cmd: >-
+      python -m src.evaluation prepare
+      --inbox data/scenarios/evaluacion-julio-v1/inbox
+      --protocol config/evaluation.json
+      --output data/evaluation/dev-context-v1
+    deps:
+      - data/scenarios/evaluacion-julio-v1/inbox
+      - config/evaluation.json
+      - src/evaluation.py
+      - src/replay.py
+      - src/metrics.py
+      - src/baseline.py
+      - src/snapshot.py
+      - src/deliveries.py
+      - src/ingest.py
+      - src/validate_snapshot.py
+      - requirements/tools.lock
+    outs:
+      - data/evaluation/dev-context-v1
+  baseline_backtest:
+    cmd: >-
+      python -m src.evaluation baseline
+      --context data/evaluation/dev-context-v1
+      --config config/baseline.json
+      --output data/evaluation/baseline-dev-v1
+    deps:
+      - data/evaluation/dev-context-v1
+      - config/baseline.json
+      - src/evaluation.py
+      - src/replay.py
+      - src/metrics.py
+      - src/baseline.py
+      - src/snapshot.py
+      - src/deliveries.py
+      - src/ingest.py
+      - src/validate_snapshot.py
+      - requirements/tools.lock
+    outs:
+      - data/evaluation/baseline-dev-v1

@@ -152,3 +152,45 @@ Pruebas ejecutadas: 23 con unittest y pytest en el contenedor. Se añadieron cas
 `dvc repro baseline_predict` generó las etapas de ajuste y predicción. Después se ejecutó `dvc repro --force --no-run-cache baseline_predict`: los hashes SHA-256 del modelo, del pronóstico y de su manifiesto fueron idénticos. Se comprobaron 12,474 combinaciones fecha/tienda/familia, 37,422 filas con cuantiles crecientes y no negativos, fechas posteriores al corte y cero filas con historia insuficiente en esta muestra. Todas usaron el método del mismo día de semana.
 
 Resumen regenerable de esa ejecución en `reports/generated/baseline_verified.json`; los artefactos completos están en DVC local. No hay evaluación de calidad ni evidencia de publicación remota. El usuario confirmó la identidad de autor y autorizó su configuración local. El punto de control de código, configuración y referencias se registra en la rama `feature/baseline-cuantiles`, sin publicar datos ni repositorio.
+
+## 11. Protocolo temporal de desarrollo
+
+Antes de consultar las métricas se congeló `config/evaluation.json`: cortes 2017-07-04, 2017-07-11, 2017-07-18 y 2017-07-25 a las 13:00 UTC, horizonte de siete días posteriores al corte y cuantiles 0.1/0.5/0.9. Se eligieron cuatro semanas sin solapamiento de objetivos para comparar con el mismo peso temporal y evitar mezclar filas aleatoriamente. Las ventanas del baseline conservan 28 días y avanzan con el corte. No se ajustaron sus parámetros después de ver resultados.
+
+Es una evaluación de desarrollo. Los objetivos terminan el 1 de agosto; esta etapa no puntúa fechas posteriores ni representa todavía un test final de generalización. Los modelos candidatos se podrán desarrollar aquí y luego deberán evaluarse en otro período definido antes de consultarlo. El período desconocido del equipo docente sigue fuera de nuestro control.
+
+Se preparó una bandeja independiente, `evaluacion-julio-v1`, con originales del 1 de junio al 1 de agosto, 249 entregas más manifiesto. Se conservaron los retrasos conservadores de cada fuente y se agregó una demora sintética de dos días para transacciones del 10 de julio. No se cambian ventas ni la bandeja anterior. La nueva referencia `evaluation-scenario.dvc` guarda esta entrada en el caché local.
+
+El calendario tiene carga histórica en el primer polling del 4 de julio y luego polling diario hasta el 3 de agosto, siempre a las 13:00 UTC. Los reales para puntuar se toman con conocimiento hasta ese cierre fijo. Si una entrega real se retrasa más allá del cierre, el caso queda pendiente; una corrección elegible puede revisar la métrica sin reescribir el pronóstico anterior.
+
+`evaluation_context` genera snapshots de cada corte, validación, casos y reales al cierre. Su `logical_ledger.json` conserva disponibilidad e ingesta simuladas; se excluye `recorded_at_wall` del artefacto reproducible porque cambiaría con la hora real de ejecución. Se usa un replay específico de la bandeja congelada para asignar cada entrega a su primer polling elegible, equivalente a la ingesta operativa sobre ese mismo escenario. El registro operativo original y su auditoría real permanecen intactos.
+
+La lista de casos se define con tiendas y familias conocidas en cada corte, antes de mirar los reales del horizonte. El futuro ML debe conservar los mismos hashes de contexto y casos, horizonte, cuantiles y cierre de reales. Se cuenta explícitamente cualquier pronóstico faltante y real pendiente. No se permite atribuir una mejora a un conjunto menor de casos.
+
+`src.metrics` calcula MAE, RMSE, sesgo de mediana (predicción menos real), WAPE, pinball por cuantil/medio y cobertura/ancho del intervalo. WAPE se deja nulo si la suma real es cero, sin constantes de relleno. Las métricas son nulas si no hay casos puntuados. La agregación global usa todos los casos puntuados, no promedios de promedios. Las magnitudes agregan familias de distintas escalas; no representan costos de negocio.
+
+`baseline_backtest` reutiliza el contexto congelado; su función de ajuste recibe solo cada snapshot histórico, mientras el módulo de puntuación recibe los reales después. Los parámetros del baseline son los mismos del punto de control anterior. El costo de negocio queda explícitamente pendiente de configuración; aún no se declara un ganador ni se promueve un modelo.
+
+Se añadieron pruebas de métricas con cálculo manual, denominador cero, casos sin real o pronóstico, orden de claves, cuantiles cruzados/incompletos, protocolo inválido, contexto alterado y replay determinista. Una corrección sintética del real del horizonte cambia su error sin cambiar el identificador del modelo anterior. Guía en `docs/EVALUACION_TEMPORAL.md`.
+
+### Optimización verificada del replay de desarrollo
+
+La primera ejecución real mostraba un costo alto de releer y validar entregas ya conocidas en cada polling. `src.replay` valida una vez cada entrega elegible y calcula el primer polling con disponibilidad menor o igual; mantiene las reglas de archivos pendientes y no lee valores futuros. Se exige una bandeja estática versionada, a diferencia de la ingesta de un origen operativo que puede cambiar físicamente.
+
+Se comprobaron igualdad exacta con la ingesta operativa en pruebas y un prefijo real de 12 pollings/175 entregas antes de detener únicamente ese cálculo de referencia. Se conservó su directorio temporal bajo `reports/generated/reference-replay-interrupted/`. La evidencia de equivalencia está en `reports/generated/replay_equivalence.json`; no contiene nuevos supuestos sobre disponibilidad observada ni altera las entradas.
+
+### Resultados del baseline en el protocolo congelado
+
+Los cuatro cortes puntuaron 49,896 casos de los 49,896 esperados, sin reales pendientes ni predicciones faltantes. Resultado global por casos: MAE 61.2278, RMSE 235.3317, WAPE 12.8694 %, sesgo de mediana -5.9051, pinball medio 22.2737, cobertura q10–q90 57.3212 % y ancho medio 118.6359. El detalle por corte y las definiciones están en `docs/EVALUACION_TEMPORAL.md`; los resultados completos están en `data/evaluation/baseline-dev-v1/` bajo DVC.
+
+La cobertura queda por debajo del 80 % nominal en todos los cortes. Se documenta como una limitación del baseline con cuatro observaciones recientes por día de semana, sin afirmar una causa única ni recalibrarlo después de ver este bloque. El último corte muestra más error, pero no se descarta. Las métricas agregadas mezclan unidades/escalas de familias y no se interpretan como costo de negocio.
+
+Se mantienen la configuración y el protocolo como referencia del futuro ML. Pasaron 37 pruebas con pytest en Linux. `scripts/verify_evaluation.py` comprueba la restauración desde caché y el recálculo sobre el contexto congelado, preservando una copia previa de resultados y generando evidencia local en `reports/generated/evaluation_verified.json`. No se modifican entradas ni se suben artefactos.
+
+### Recuperación de metadatos DVC interrumpidos
+
+La primera verificación restauró y recalculó resultados idénticos, pero `dvc status` encontró propietarios del antiguo proceso cancelado en `.dvc/tmp/rwlock`. Tras confirmar que no había contenedores activos del proyecto y que todos los propietarios eran exactamente el comando de evaluación interrumpido (PID 7), se renombró ese archivo a `rwlock.interrupted-evaluation.bak` para preservarlo y se repitió la verificación. No se borró caché ni se alteraron datos o credenciales. No se implementa retirada automática de bloqueos sin comprobar sus propietarios.
+
+### Verificación final de esta etapa
+
+La verificación repetida terminó correctamente: restauración desde el caché idéntica, recálculo idéntico de todos los archivos de resultados, contexto sin cambios y `dvc status --json` igual a `{}`. Se verificaron además por SHA-256 las 163 entradas/configuraciones protegidas y el notebook original de la demostración anterior: intactos. Evidencia en `reports/generated/evaluation_verified.json`. La evaluación queda guardada en un commit local de la rama existente, sin publicación externa, cambios de remoto ni tag de entrega.
