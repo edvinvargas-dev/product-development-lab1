@@ -1,0 +1,12 @@
+{
+  "policy_id": "seleccion-tecnica-v1",
+  "primary_metric": "mean_pinball",
+  "minimum_relative_improvement": 0.05,
+  "maximum_mae_relative_increase": 0.0,
+  "minimum_improved_folds": 3,
+  "coverage_distance_must_not_increase": true,
+  "require_identical_cases_and_complete_scores": true,
+  "production_maximum_absolute_coverage_error": 0.10,
+  "production_requires_independent_holdout": true,
+  "production_requires_business_cost_noninferiority": true
+}
