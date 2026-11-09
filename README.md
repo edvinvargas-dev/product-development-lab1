@@ -1,6 +1,6 @@
 # Laboratorio 1: motor de reposición
 
-Estado: ingesta temporal, baseline, primer ML híbrido y comparación de desarrollo con DVC local. El producto completo y Airflow aún no están implementados. Decisiones y supuestos en [DECISIONES.md](DECISIONES.md); requisitos pendientes en [docs/ACEPTACION.md](docs/ACEPTACION.md).
+Estado: ingesta temporal, baseline/ML, comparación y mecanismo de objetivos de abastecimiento/costos con DVC local. Los costos activos están pendientes de definición. El producto completo y Airflow aún no están implementados. Decisiones y supuestos en [DECISIONES.md](DECISIONES.md); requisitos pendientes en [docs/ACEPTACION.md](docs/ACEPTACION.md).
 
 ## Recorrido disponible
 
@@ -70,6 +70,16 @@ La imagen `ml` añade cinco dependencias científicas sin actualizar las 117 de 
 
 Pasó el criterio técnico registrado antes de entrenar, pero no se promovió: faltan calibración suficiente, holdout y costos. Ver [MODELO_ML.md](docs/MODELO_ML.md) para diseño, variables, resultados por corte y reproducción de los modelos guardados. Los artefactos están en `data/evaluation/ml-dev-v1/` y `comparison-v1/`, bajo DVC local, fuera de Git.
 
+## Objetivos de abastecimiento y costos
+
+```bash
+docker compose -f compose.tools.yaml run --rm ml dvc repro orders_configured orders_example business_example
+```
+
+`config/costs.json` conserva costos pendientes, sin inventar valores reales. El ejemplo separado `config/examples/costs-relative-9-1.json` permite revisar objetivos diarios y costo asimétrico ilustrativo. Hay costos por defecto y excepciones por familia; cambiar su relación cambia el cuantil elegido sin modificar código.
+
+Las salidas tienen cantidad objetivo y stock desconocido; no se presenta un pedido neto de inventario. La [guía de pedidos y costos](docs/PEDIDOS_Y_COSTOS.md) explica fórmula, interpolación, límites y métrica de negocio proxy. Las salidas y la comparación ilustrativa están bajo `data/orders/` y `data/evaluation/business-example-9-1/`, versionadas con DVC. Falta definir qué costos/escenario se activarán y conectar publicaciones y seguimiento.
+
 ## Entorno verificado
 
 WSL2 Ubuntu y Docker Desktop con motor Linux accesible. Las herramientas del contenedor usan Python 3.12; el Python del host continúa independiente. Comprobar desde la terminal:
@@ -89,7 +99,7 @@ El remoto DVC existente es Google Drive; no se ha probado una descarga desde WSL
 1. Completado: escenario conservador, carga histórica inicial, bandeja inmutable, registro y selección por corte; pruebas de retrasos/correcciones/replay.
 2. Entorno de herramientas Linux y referencias DVC locales de entradas/procesados de demostración. Pendientes: validaciones entre fuentes, calendario de polling y publicación autorizada de artefactos nuevos al remoto.
 3. Baseline, ML y comparación bajo el mismo contexto implementados, con criterio técnico previo. Pendientes: calibración/holdout, costos configurables y evaluación de negocio para sustituir el modelo vigente.
-4. Recomendaciones de abastecimiento y seguimiento de publicaciones.
+4. Mecanismo de objetivos/costos y evaluación ilustrativa implementados. Pendientes: definición de costos activos, publicaciones inmutables y seguimiento operativo.
 5. Airflow 3, Compose, pytest/CI, documentación de reconstrucción y evidencias completas.
 6. GitHub y protección mediante acciones autorizadas, revisión de aceptación y tag local de entrega.
 

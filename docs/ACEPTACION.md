@@ -8,7 +8,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [ ] Pronóstico diario por tienda/familia con horizonte definido e incertidumbre (p. 1).
 - [ ] Pedido con costos configurables versionados y límites por ausencia de inventario (p. 1).
 - [ ] Seguimiento de publicaciones frente a reales según se conocen (p. 1).
-- [ ] Carga histórica completa y bandeja por fecha/fuente, tratada como externa e inmutable. Recorrido de demostración implementado y probado; ampliación de historia pendiente (p. 2).
+- [ ] Carga histórica inicial y bandeja por fecha/fuente, tratada como externa e inmutable. Recorrido de demostración implementado y probado; integración operativa parametrizable pendiente. El PDF no exige cargar toda la historia original en cada ejecución (p. 2).
 - [ ] Disponibilidad temporal explícita, demoras y correcciones sin fuga de información (p. 2).
 - [ ] GitHub, ramas/PR, protección de rama principal y pytest en Actions en cada PR (p. 2).
 - [ ] Entradas, procesados, modelos y pronósticos publicados versionados con DVC y remoto (p. 2).
@@ -32,3 +32,13 @@ Avance de la etapa 4: baseline de cuantiles por tienda/familia, modelo y pronós
 Avance de la etapa 5: evaluación de desarrollo con cuatro cortes sin fuga temporal, contexto/casos congelados para compartir con ML, 49,896 casos puntuados y métricas técnicas por corte/globales. Pasaron 37 pruebas; hay casos de correcciones, reales pendientes y equivalencia del replay. Cobertura observada 57.3212 % frente al 80 % nominal: calibración pendiente de mejora. Modelos, pronósticos, reales preparados y métricas están en DVC local. Siguen pendientes el ML que mejore al baseline, costos/métrica de negocio y el resto de requisitos operativos/remotos.
 
 Avance de la etapa 6: criterio registrado antes del entrenamiento (`2f765f6`), ML para q10/q90 con mediana baseline y 33 variables de las cinco fuentes/calendario. Mismos 49,896 casos; pinball mejora 5.1189 % y gana tres de cuatro cortes, sin alterar MAE. Cobertura 64.2296 % todavía insuficiente para la tolerancia operativa. Pasaron 43 pruebas y se reprodujeron los cuatro pronósticos desde modelos DVC; se auditaron 368,874 ejemplos temporales. No hay promoción operativa: faltan calibración/holdout y costo de negocio, además de pedidos, seguimiento, Airflow, CI/remoto y evidencia final.
+
+## Alcance obligatorio frente a decisiones del proyecto
+
+Se volvió a leer el PDF original de cuatro páginas al revisar el alcance con el usuario. El documento exige incertidumbre, baseline/ML con mejora, validación temporal idéntica, métricas técnicas/de negocio y criterio explícito de sustitución. No impone este algoritmo, una mejora mínima del 5 %, ganar tres cortes, cobertura exacta del 80 %, tolerancia de 0.10 ni otro holdout interno separado: son decisiones técnicas que añadimos y deben justificarse como tales. La evaluación docente en un período no publicado sí es un requisito, distinto de ese holdout interno.
+
+La mejora demostrada del híbrido es en pinball; MAE/WAPE de la mediana permanecen iguales por diseño. Falta la comparación de negocio. No se presenta el pase técnico como cumplimiento del producto completo.
+
+Prioridad tras esta revisión: completar costos configurables/pedido, publicaciones y seguimiento, Airflow 3/Compose, CI/GitHub/remoto y evidencias de reconstrucción/ejecución. La calibración adicional y el holdout interno no deben desplazar estos requisitos pendientes. Las políticas previas se conservan como registro del experimento; no se rebajan retrospectivamente para fingir una promoción.
+
+Avance de la etapa 7: mecanismo de objetivos diarios derivados de costos, excepciones por familia, cantidades sin stock ficticio y métrica asimétrica proxy. El ejemplo 9:1 tiene 12,474 objetivos y comparación sobre 49,896 casos/modelo; 53 pruebas pasan. La configuración activa sigue pendiente de valores/elección del usuario, por eso no se marca aún como entrega operativa completa de pedidos/costos. Faltan registro de publicaciones, seguimiento, Airflow/CI/remoto y evidencias finales. Ver `PEDIDOS_Y_COSTOS.md`.

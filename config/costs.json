@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenario_id": "costos-pendientes-v1",
+  "description": "Pendiente de valores o elección explícita del escenario ilustrativo por el usuario.",
+  "cost_basis": "not_configured",
+  "cost_unit": "pending",
+  "defaults": {"shortage_per_unit": null, "excess_per_unit": null},
+  "family_overrides": {},
+  "quantile_rule": "linear_interpolation_no_extrapolation",
+  "quantity_type": "daily_supply_target"
+}

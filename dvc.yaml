@@ -131,3 +131,61 @@ stages:
       - requirements/tools.lock
     outs:
       - data/evaluation/comparison-v1
+  orders_configured:
+    cmd: >-
+      python -m src.orders
+      --forecast forecasts/baseline-demo/forecast.csv
+      --costs config/costs.json
+      --output data/orders/configured-demo
+    deps:
+      - forecasts/baseline-demo
+      - config/costs.json
+      - src/orders.py
+      - src/baseline.py
+      - src/deliveries.py
+      - src/ingest.py
+      - requirements/tools.lock
+    outs:
+      - data/orders/configured-demo
+  orders_example:
+    cmd: >-
+      python -m src.orders
+      --forecast forecasts/baseline-demo/forecast.csv
+      --costs config/examples/costs-relative-9-1.json
+      --output data/orders/illustrative-9-1
+    deps:
+      - forecasts/baseline-demo
+      - config/examples/costs-relative-9-1.json
+      - src/orders.py
+      - src/baseline.py
+      - src/deliveries.py
+      - src/ingest.py
+      - requirements/tools.lock
+    outs:
+      - data/orders/illustrative-9-1
+  business_example:
+    cmd: >-
+      python -m src.business_evaluation
+      --context data/evaluation/dev-context-v1
+      --baseline data/evaluation/baseline-dev-v1
+      --candidate data/evaluation/ml-dev-v1
+      --costs config/examples/costs-relative-9-1.json
+      --output data/evaluation/business-example-9-1
+    deps:
+      - data/evaluation/dev-context-v1
+      - data/evaluation/baseline-dev-v1
+      - data/evaluation/ml-dev-v1
+      - config/examples/costs-relative-9-1.json
+      - src/orders.py
+      - src/business_evaluation.py
+      - src/evaluation.py
+      - src/metrics.py
+      - src/baseline.py
+      - src/deliveries.py
+      - src/ingest.py
+      - src/replay.py
+      - src/snapshot.py
+      - src/validate_snapshot.py
+      - requirements/tools.lock
+    outs:
+      - data/evaluation/business-example-9-1
