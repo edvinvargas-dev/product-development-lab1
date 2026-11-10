@@ -1,0 +1,23 @@
+name: pruebas
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Solo pytest y las cinco dependencias científicas fijadas: los datos de Kaggle no se
+      # necesitan, todas las pruebas usan datos sintéticos.
+      - name: Instalar dependencias de prueba
+        run: pip install pytest==8.3.5 -r docker/ml/requirements.lock
+      - name: Verificar sintaxis de los DAGs
+        run: python -m py_compile dags/*.py
+      - name: Ejecutar pytest
+        run: python -m pytest -v

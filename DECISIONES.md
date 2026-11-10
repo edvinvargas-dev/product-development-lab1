@@ -250,3 +250,36 @@ Se adopta técnicamente como supuesto académico de trabajo la relación faltant
 `config/costs.json` deja de estar pendiente y genera objetivos q90. Se agregó `business_configured` para evaluar con el mismo archivo que decide cantidades, manteniendo el ejemplo independiente y el resto del experimento sin cambios. La métrica sigue siendo proxy de escenario, sin afirmar ahorros reales ni activar promoción operativa del ML. Próxima prioridad: publicaciones inmutables y seguimiento.
 
 Verificación de esta configuración: las 10 pruebas de recomendaciones pasan; se generaron 12,474 objetivos diarios listos con q90, sin inventar inventario. La evaluación de negocio usa el mismo archivo de costos. Se comprobaron intactos por SHA-256 los 163 archivos protegidos del registro previo. Evidencia local en `reports/generated/active_costs_verified.json`; originales y salidas grandes permanecen fuera de Git.
+
+## 16. Operación con Airflow 3: productor, consumidor diario y seguimiento
+
+**Productor separado del consumidor.** El DAG `bandeja_simulada` (`@once`) genera la bandeja a partir de los CSV de Kaggle con `config/operacion.json`. Si ya existe con la misma configuración no hace nada; con otra configuración falla en lugar de sobrescribirla. El DAG consumidor `reposicion_diaria` solo la lee, y un sensor espera a que exista. Así el docente solo tiene que levantar Compose, sin pasos manuales. Alternativa descartada: generar la bandeja dentro del consumidor, porque mezclaría el sistema de origen con el producto.
+
+**Incidentes simulados y declarados.** Además de los retrasos por fuente, la bandeja operativa contiene una corrección de ventas y una entrega inválida:
+- **Corrección:** la tienda 44 del 2017-08-07 llega primero al 40 % y la revisión r2 llega 3 días después.
+- **Entrega inválida:** el petróleo del 2017-08-09 trae un valor negativo, con r2 válida 1 día después.
+
+Son supuestos de prueba de la operación, no hechos de Favorita. Si un incidente queda fuera del periodo configurado, se ignora.
+
+**Frecuencia y horizonte (cierra la decisión 1).** Hay una ejecución diaria con corte a las 13:00 UTC, una hora después de la disponibilidad simulada, y horizonte de 7 días. El PDF habla de un pedido semanal. La ejecución diaria lo cubre: cada corte publica la semana siguiente día a día, y la operación puede tomar el corte del día de pedido. Además, corregir y dar seguimiento a diario detecta antes los problemas de datos. Alternativa: un corte semanal, con menos publicaciones y un seguimiento más tardío.
+
+**Datos inválidos frente a situaciones esperadas:**
+- **Cuarentena:** una entrega nueva con hash correcto y contenido inválido (valores negativos o no finitos, claves duplicadas, esquema o fechas incorrectas) se registra en `rejections` del registro de ingesta. Nunca entra a un snapshot y no detiene las demás entregas. Si después llega una revisión válida, se usa.
+- **Integridad:** un hash alterado, o una entrega ya registrada que cambió, detienen la ejecución. Esto no es un dato malo de negocio sino una violación del contrato.
+- **Validación cruzada:** detiene el flujo antes del modelo cuando el snapshot tiene datos inválidos.
+- **Situaciones esperadas:** días sin petróleo, transacciones retrasadas, entregas vacías y ventas cero solo generan avisos. Si todavía no hay catálogo o ventas, se publica un estado `not_ready` sin inventar un pronóstico.
+
+**Idempotencia y publicaciones inmutables:**
+- **Identificador:** cada publicación vive en `data/published/<escenario>/<día>/<id12>/`. El identificador es el hash del corte, del manifiesto del snapshot, de las configuraciones de baseline y costos, y de la huella del código en `src/`.
+- **Reejecución:** repetir el mismo corte verifica byte a byte y no escribe nada. Si cambian el código, los costos o lo que se conocía, se crea otra publicación y la anterior se conserva.
+- **Alteración:** una publicación alterada se detecta y se rechaza.
+- **Procedencia:** `provenance.json` guarda el commit de Git y la hora real. Queda fuera del identificador para que la reejecución siga siendo idempotente.
+- **Concurrencia:** `max_active_runs=1` y `depends_on_past` serializan las escrituras al registro de ingesta.
+
+**Backfill y reprocesamiento de correcciones.** Un corte cuyo día ya quedó atrás del registro entra en modo backfill: no se reingesta, y el snapshot reconstruye lo que se sabía en ese corte a partir de `ingested_at`. Las correcciones no reescriben pronósticos publicados, porque se emitieron con la información de su momento. El seguimiento se recalcula en cada corte con la última revisión conocida de las ventas y declara `corrections_applied`, de modo que una corrección se refleja automáticamente en las métricas.
+
+**Modelo vigente en operación.** Se usa el baseline de cuantiles. El ML híbrido pasó el criterio técnico de desarrollo (decisión 12), pero la política registrada antes de entrenar exige además un holdout independiente y cobertura con error ≤ 0.10, y eso aún no se cumple. Promoverlo ahora sería cambiar el criterio después de ver resultados. El ML se mantiene como retador evaluado con DVC (`model_comparison`, `business_configured`). Una ventaja adicional: la imagen oficial de Airflow basta, porque el baseline usa solo la biblioteca estándar.
+
+**Seguimiento.** `src/tracking.py` produce `tracking.json` y `report.md` por corte. Incluye métricas técnicas (MAE, WAPE, pinball y cobertura del intervalo del 80 %) y el costo proxy 9:1 por publicación y global. Los reales pendientes no se tratan como cero.
+
+**Entorno.** `docker-compose.yaml` usa la imagen oficial `apache/airflow:3.3.2-python3.12`, PostgreSQL 16 y LocalExecutor. No hay construcción de imagen propia ni red de salida para el producto. `AIRFLOW_UID` y `AIRFLOW_PORT` se pueden configurar en `.env`.

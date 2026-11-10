@@ -12,3 +12,4 @@ __pycache__/
 reports/generated/
 # Se conserva el original local; versionar solo la copia sin resultados.
 /analisis_exploratorio.ipynb
+.env

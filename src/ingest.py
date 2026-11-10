@@ -44,12 +44,17 @@ def load_ledger(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def ingest(inbox, ledger_path, at):
+def ingest(inbox, ledger_path, at, quarantine=False):
     """`at` es hora lógica de polling simulada; nunca se deduce de la fecha del dato.
 
     Validar todo el lote antes de escribir evita registros parciales por datos inválidos.
     Un reintento conserva la primera ingesta. Un backfill consulta el registro existente.
-    El llamador debe serializar escrituras a un mismo registro (futuro pool de Airflow).
+    El llamador debe serializar escrituras a un mismo registro (Airflow: max_active_runs=1).
+
+    Con `quarantine=True` (modo operativo) una entrega nueva cuyo hash coincide con el
+    catálogo pero con contenido inválido se rechaza y se registra en `rejections`; nunca
+    llega a un snapshot y el resto del lote continúa. Un hash alterado o una entrega ya
+    registrada modificada siguen deteniendo todo: son fallas de integridad, no de datos.
     """
     protect_inputs(inbox, ledger_path)
     cutoff = timestamp(at)
@@ -67,24 +72,37 @@ def ingest(inbox, ledger_path, at):
     for identifier, receipt in known.items():
         if catalog.get(identifier) != receipt["entry"]:
             raise ValueError("Una entrega ya registrada fue modificada o retirada del catálogo")
-    pending, awaiting_delivery = [], []
+    rejected = {r["entry"]["delivery_id"] for r in ledger.get("rejections", [])}
+    pending, awaiting_delivery, new_rejections = [], [], []
     for entry in manifest["deliveries"]:
-        if timestamp(entry["available_at"]) > cutoff:
+        if timestamp(entry["available_at"]) > cutoff or entry["delivery_id"] in rejected:
             continue
         if not delivery_path(inbox, entry).is_file() and entry["delivery_id"] not in known:
             awaiting_delivery.append({"delivery_id": entry["delivery_id"], "status": "awaiting_delivery"})
             continue
         # También verifica que las entregas previas sigan intactas.
-        validate_delivery(inbox, entry)
+        try:
+            validate_delivery(inbox, entry)
+        except ValueError as error:
+            if not quarantine or entry["delivery_id"] in known or str(error).startswith("Hash"):
+                raise
+            new_rejections.append({"entry": entry, "rejected_at": cutoff.isoformat(), "reason": str(error)})
+            continue
         if entry["delivery_id"] not in known:
             pending.append({"entry": entry, "ingested_at": cutoff.isoformat(),
                             "recorded_at_wall": datetime.now(timezone.utc).isoformat()})
-    if pending or not Path(ledger_path).exists():
+    if pending or new_rejections or not Path(ledger_path).exists():
         ledger["receipts"].extend(pending)
         ledger["receipts"].sort(key=lambda r: r["entry"]["delivery_id"])
+        if new_rejections:
+            ledger["rejections"] = sorted(ledger.get("rejections", []) + new_rejections,
+                                          key=lambda r: r["entry"]["delivery_id"])
         atomic_json(ledger_path, ledger)
-    return {"new_deliveries": len(pending), "known_deliveries": len(ledger["receipts"]),
-            "logical_ingestion_at": cutoff.isoformat(), "awaiting_delivery": awaiting_delivery}
+    result = {"new_deliveries": len(pending), "known_deliveries": len(ledger["receipts"]),
+              "logical_ingestion_at": cutoff.isoformat(), "awaiting_delivery": awaiting_delivery}
+    if quarantine:  # El modo estricto conserva su contrato previo (replay y artefactos DVC).
+        result["rejected"] = [{"delivery_id": r["entry"]["delivery_id"], "reason": r["reason"]} for r in new_rejections]
+    return result
 
 
 def main():
