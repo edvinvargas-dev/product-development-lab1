@@ -418,8 +418,8 @@ stages:
     deps:
     - path: config/costs.json
       hash: md5
-      md5: 0f41cc4119bbe5fa74493726345d9f5b
-      size: 429
+      md5: b5bfefa0a7f48036915287452b86c735
+      size: 521
       isexec: true
     - path: forecasts/baseline-demo
       hash: md5
@@ -454,8 +454,8 @@ stages:
     outs:
     - path: data/orders/configured-demo
       hash: md5
-      md5: 61b0522175136efbfe4793ecbbc34aba.dir
-      size: 3713984
+      md5: cb82708db249869a2884156f88fb798f.dir
+      size: 3939879
       nfiles: 2
   orders_example:
     cmd: python -m src.orders --forecast forecasts/baseline-demo/forecast.csv 
@@ -590,4 +590,91 @@ stages:
       hash: md5
       md5: d3fcefd46b96e28369f5a6786e7d51bb.dir
       size: 67269619
+      nfiles: 26
+  business_configured:
+    cmd: python -m src.business_evaluation --context 
+      data/evaluation/dev-context-v1 --baseline data/evaluation/baseline-dev-v1 
+      --candidate data/evaluation/ml-dev-v1 --costs config/costs.json --output 
+      data/evaluation/business-configured-dev-v1
+    deps:
+    - path: config/costs.json
+      hash: md5
+      md5: b5bfefa0a7f48036915287452b86c735
+      size: 521
+      isexec: true
+    - path: data/evaluation/baseline-dev-v1
+      hash: md5
+      md5: a17de3c39d99817fef96f71b092acec4.dir
+      size: 36433034
+      nfiles: 22
+    - path: data/evaluation/dev-context-v1
+      hash: md5
+      md5: ae2b179e79eb6cffbbb7e0002ff30783.dir
+      size: 20797926
+      nfiles: 41
+    - path: data/evaluation/ml-dev-v1
+      hash: md5
+      md5: d6770eb4fcfd09301f15be1f8436753f.dir
+      size: 71125697
+      nfiles: 30
+    - path: requirements/tools.lock
+      hash: md5
+      md5: 6239b3f0f6c0406d721e41f6ca141bc8
+      size: 2144
+      isexec: true
+    - path: src/baseline.py
+      hash: md5
+      md5: 828f351c838520a42e40e0ff2b63a756
+      size: 8703
+      isexec: true
+    - path: src/business_evaluation.py
+      hash: md5
+      md5: 3fcd8b7e2dfaae8452e49acb877d9b13
+      size: 6034
+      isexec: true
+    - path: src/deliveries.py
+      hash: md5
+      md5: 54db95ffb20999a890671cdcfd623434
+      size: 6436
+      isexec: true
+    - path: src/evaluation.py
+      hash: md5
+      md5: e6f5fc1dd68c91823bc050dd7e401cc2
+      size: 10524
+      isexec: true
+    - path: src/ingest.py
+      hash: md5
+      md5: 1ecb98cd884dd99fa79a196eba8765ca
+      size: 4595
+      isexec: true
+    - path: src/metrics.py
+      hash: md5
+      md5: 4786851db79c1b5964e9a77892430be6
+      size: 5806
+      isexec: true
+    - path: src/orders.py
+      hash: md5
+      md5: 0cde42cbd6a3358753c80b0040a54404
+      size: 10661
+      isexec: true
+    - path: src/replay.py
+      hash: md5
+      md5: 79094dd0efa7d03e34cd54a5fb5c251f
+      size: 1786
+      isexec: true
+    - path: src/snapshot.py
+      hash: md5
+      md5: 4c18a3514828b2172581df3515068eee
+      size: 5198
+      isexec: true
+    - path: src/validate_snapshot.py
+      hash: md5
+      md5: 235f9ef2b45252679d1efe738a4c38ee
+      size: 5853
+      isexec: true
+    outs:
+    - path: data/evaluation/business-configured-dev-v1
+      hash: md5
+      md5: b993437585560d070852d4e9c7171808.dir
+      size: 68666787
       nfiles: 26

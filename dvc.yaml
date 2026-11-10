@@ -189,3 +189,29 @@ stages:
       - requirements/tools.lock
     outs:
       - data/evaluation/business-example-9-1
+  business_configured:
+    cmd: >-
+      python -m src.business_evaluation
+      --context data/evaluation/dev-context-v1
+      --baseline data/evaluation/baseline-dev-v1
+      --candidate data/evaluation/ml-dev-v1
+      --costs config/costs.json
+      --output data/evaluation/business-configured-dev-v1
+    deps:
+      - data/evaluation/dev-context-v1
+      - data/evaluation/baseline-dev-v1
+      - data/evaluation/ml-dev-v1
+      - config/costs.json
+      - src/orders.py
+      - src/business_evaluation.py
+      - src/evaluation.py
+      - src/metrics.py
+      - src/baseline.py
+      - src/deliveries.py
+      - src/ingest.py
+      - src/replay.py
+      - src/snapshot.py
+      - src/validate_snapshot.py
+      - requirements/tools.lock
+    outs:
+      - data/evaluation/business-configured-dev-v1
