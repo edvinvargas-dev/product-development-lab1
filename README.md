@@ -127,8 +127,16 @@ sudo apt install -y python3-venv
 python3 -m venv .venv-wsl
 .venv-wsl/bin/pip install "dvc[gdrive]==3.67.1" "dvc-gdrive==3.0.1" \
   "pyOpenSSL==24.2.1" "cryptography==43.0.3" "PyDrive2==1.21.3" "asyncssh==2.22.0"
+.venv-wsl/bin/dvc remote modify --local storage gdrive_client_id '<CLIENT_ID>'
+.venv-wsl/bin/dvc remote modify --local storage gdrive_client_secret '<CLIENT_SECRET>'
 .venv-wsl/bin/python scripts/dvc_drive_lotes.py pull       # o: push, status -c
 ```
+
+**Credenciales de Google Drive.** Google bloquea el cliente OAuth que DVC trae por defecto ("Se bloqueó esta app"). Por eso cada usuario necesita:
+- un cliente OAuth propio (Google Cloud Console → APIs y servicios → Credenciales, tipo *App de escritorio*, con la API de Drive habilitada), o los valores que el responsable del proyecto entregue por un canal privado;
+- acceso compartido a la carpeta de Drive del remoto.
+
+Los valores van solo en `.dvc/config.local`, que Git ignora; nunca se versionan. La primera ejecución abre el navegador para iniciar sesión.
 
 Las versiones de `pyOpenSSL` y `cryptography` se fijan igual que en `requirements/tools.lock`. Si pip elige otras, DVC falla con `module 'lib' has no attribute 'GEN_EMAIL'`.
 
@@ -144,7 +152,9 @@ docker compose -f compose.tools.yaml run --rm tools python -m src.operation repr
 
 `reproduce` reconstruye el snapshot del corte desde la bandeja y el registro versionados. Después reajusta el modelo, vuelve a pronosticar y a calcular el pedido en `data/reproduction/`, y compara cada archivo con la publicación original. Si todo coincide, termina con código 0.
 
-**Evidencia (2026-11-10, copia local):** se reprodujo la publicación `751908fb5128` del corte 2017-08-05. Los cinco archivos (`forecast.csv`, `orders.csv`, `model.json`, `validation.json` y `manifest.json`) son idénticos byte a byte (`"identical": true`, código de salida 0). Por ejemplo, `forecast.csv` tiene SHA-256 `e7d86b57…cdee20`. Falta repetir la prueba desde un clon limpio con `dvc pull`.
+**Evidencia (2026-11-10, copia local):** se reprodujo la publicación `751908fb5128` del corte 2017-08-05. Los cinco archivos (`forecast.csv`, `orders.csv`, `model.json`, `validation.json` y `manifest.json`) son idénticos byte a byte (`"identical": true`, código de salida 0). Por ejemplo, `forecast.csv` tiene SHA-256 `e7d86b57…cdee20`.
+
+**Evidencia desde un clon limpio (2026-11-10):** se clonó `main` (`4e2eec9`) desde GitHub y se ejecutó `dvc pull` de `operacion-bandeja.dvc`, `operacion-registro.dvc` y `operacion-publicaciones.dvc` desde Google Drive. Después se corrió `reproduce --day 2017-08-05` en el contenedor `tools`. Resultado: `identical: true` en los cinco archivos, con los mismos SHA-256. El código de `src/` y `config/` en `main` es idéntico al del commit de la publicación (`ddb8e1d`).
 
 ## Pruebas y CI
 

@@ -12,7 +12,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [x] Disponibilidad temporal explícita, demoras y correcciones sin fuga de información (p. 2). Se separan `available_at` e `ingested_at`, y los snapshots se arman con lo conocido en cada corte (DECISIONES 16).
 - [ ] GitHub, ramas/PR, protección de rama principal y pytest en Actions en cada PR (p. 2).
 - [x] Entradas, procesados, modelos y pronósticos publicados versionados con DVC y remoto (p. 2). `operacion-{bandeja,registro,snapshots,publicaciones,seguimiento}.dvc` (cortes 2017-08-01 a 08-17) más `dvc.yaml`/`dvc.lock`. `dvc push` a Google Drive el 2026-11-10 (174 archivos); `dvc status -c` está sincronizado.
-- [ ] Reproducción ejecutada de un pronóstico pasado con versiones de código/datos (p. 2 y 4). Local: `reproduce --day 2017-08-05` dio `identical: true` en 5 archivos (2026-11-10). Falta repetirla desde un clon limpio con `dvc pull`; la operación ya está en el remoto.
+- [x] Reproducción ejecutada de un pronóstico pasado con versiones de código/datos (p. 2 y 4). Desde un clon limpio de GitHub (`4e2eec9`) con `dvc pull` desde Drive, `reproduce --day 2017-08-05` dio `identical: true` en 5 archivos (2026-11-10).
 - [x] Airflow 3 en Compose: ingesta/validación, preparación, pronóstico/pedido y seguimiento (p. 2). Los 17 cortes, del 2017-08-01 al 08-17, terminaron en `success` sobre el commit `ddb8e1d`. Las capturas de la interfaz se registran en el criterio de evidencias.
 - [x] Idempotencia, rechazo de datos inválidos y tratamiento explícito de ausencias esperables (p. 2). Petróleo del 08-09 en `rejections`; pruebas en `tests/test_operation.py` (60 pruebas OK con unittest el 2026-11-10).
 - [ ] Backfill y reprocesamiento de correcciones, módulos probados y DAGs delgados (p. 3).
@@ -46,7 +46,7 @@ Avance de la etapa 7: mecanismo de objetivos diarios derivados de costos, excepc
 Actualización de costos: el usuario confirmó que no dispone de costos reales y se comprobó que no están en los CSV. Se adoptó el supuesto académico relativo 9:1 en la configuración activa, con procedencia ilustrativa explícita; no se trata de costos observados. La generación de objetivos y la métrica `business_configured` usan el mismo archivo. El inventario no es un requisito de entrada adicional: el producto declara objetivos diarios, sin pedido neto. La integración operativa/publicaciones sigue pendiente.
 
 Avance de la etapa 8: operación con Airflow 3 (productor `bandeja_simulada` y consumidor diario `reposicion_diaria`), publicaciones inmutables con procedencia, cuarentena, correcciones y seguimiento. La reproducción local de la publicación del 2017-08-05 fue idéntica. Pendientes:
-- repetir la reproducción desde un clon limpio con `dvc pull` (`scripts/dvc_drive_lotes.py`);
+- definir y documentar el acceso del equipo docente al remoto Drive (carpeta compartida y cliente OAuth);
 - publicar en GitHub con CI y protección de `main`;
 - backfill ejecutado en Airflow y período no publicado;
 - capturas de la interfaz y tag de entrega.
