@@ -20,7 +20,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [x] Métricas técnicas y de costo, criterio explícito de sustitución (p. 3). Pinball, MAE, WAPE, cobertura y costo proxy 9:1; criterio en `config/model-selection.json`.
 - [x] README completo y decisiones justificadas sobre disponibilidad, validación y correcciones (p. 3). Revisión final del README (2026-11-11) contrastada con `comparison.json`, `business-configured-dev-v1/metrics.json`, `src/operation.py` y los tiempos de Airflow. Las decisiones están en `DECISIONES.md` (1–17).
 - [x] Ejecución sobre período no publicado sin intervención manual (p. 3). Clon limpio con una instalación nueva de Airflow: período del 2017-06-01 al 06-07 (`operacion-junio-v1`), 7 cortes en `success` con solo `config/operacion.json` modificado (2026-11-11). Evidencia en `docs/evidencia/periodo-junio-2017.md`. Requiere vaciar `delays` fuera del rango (README).
-- [ ] Evidencia de UI Airflow, comparación de modelos y seguimiento (p. 4).
+- [x] Evidencia de UI Airflow, comparación de modelos y seguimiento (p. 4). Capturas de la interfaz y log de idempotencia en `docs/evidencia/airflow.md`. Comparación de modelos en la tabla del README (`comparison.json`, `business-configured-dev-v1`). Seguimiento en `docs/evidencia/periodo-junio-2017.md` y en los reportes por corte.
 - [ ] Repositorio accesible al equipo docente y tag `entrega-lab1` tras verificación final (p. 3–4).
 
 Acciones externas pendientes de autorización: definir/crear el remoto GitHub, publicar, configurar protecciones y acceso docente. Acceso a Google Drive desde el entorno de ejecución pendiente; no se ha modificado ni reenviado el remoto existente.

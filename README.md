@@ -35,6 +35,8 @@ resolver_corte ──┴─> ingesta_y_validacion_entregas -> preparacion_snapsh
                                                      -> pronostico_y_pedido -> seguimiento
 ```
 
+Capturas de la interfaz (grafo, Grid, productor y log de idempotencia): [docs/evidencia/airflow.md](docs/evidencia/airflow.md).
+
 En una laptop, cada corte del escenario `operacion-v1` tardó entre 1.5 y 3 minutos. El primero tardó unos 5.5 minutos porque incluye la espera de la bandeja. Los 17 cortes terminaron en menos de una hora. Las ejecuciones son secuenciales (`max_active_runs=1`).
 
 ### Salidas
