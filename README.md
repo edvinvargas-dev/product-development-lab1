@@ -49,6 +49,8 @@ En una laptop, cada corte del escenario `operacion-v1` tardó entre 1.5 y 3 minu
 | `data/published/operacion-v1/<día>/<id>/` | **Publicación inmutable**: `forecast.csv`, `orders.csv`, `model.json`, `validation.json`, `manifest.json` y `provenance.json` (commit de Git) |
 | `data/tracking/operacion-v1/<día>/report.md` | **Reporte de seguimiento** legible, junto con `tracking.json` |
 
+Ejemplo del reporte al último corte: [docs/evidencia/seguimiento-2017-08-17.md](docs/evidencia/seguimiento-2017-08-17.md).
+
 ### Periodo nuevo o no publicado
 
 Para operar sobre otro periodo:
