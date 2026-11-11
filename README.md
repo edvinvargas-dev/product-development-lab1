@@ -61,7 +61,9 @@ docker compose exec airflow-scheduler airflow backfill create --dag-id reposicio
   --from-date 2017-08-03 --to-date 2017-08-05 --reprocess-behavior completed
 ```
 
-- **Backfill:** reconstruye lo que se sabía en cada corte (por `ingested_at`), sin reingestar. Si nada cambió, verifica las publicaciones byte a byte y no escribe nada.
+- **Backfill:** reconstruye lo que se sabía en cada corte (por `ingested_at`), sin reingestar. Si nada cambió, verifica las publicaciones byte a byte y no crea publicaciones nuevas.
+  - *Evidencia (2026-11-10):* backfill del 08-03 al 08-05. Los 3 cortes terminaron en `success`, la ingesta con `mode: backfill` y `new_deliveries: 0`, y el pronóstico con `already_published`. De 548 archivos de salida, 547 quedaron idénticos byte a byte.
+  - *Limitación conocida:* el backfill reescribe `data/tracking/<escenario>/latest.json` con su propio corte, aunque sea anterior al último (DECISIONES 17). Para restaurarlo: `docker compose -f compose.tools.yaml run --rm tools dvc checkout --force operacion-seguimiento.dvc`.
 - **Cambio de entradas:** si cambiaron el código, los costos o lo conocido, crea una publicación nueva y conserva la anterior.
 - **Correcciones:** se reflejan automáticamente en el seguimiento de cortes posteriores, en el campo `corrections_applied`.
 

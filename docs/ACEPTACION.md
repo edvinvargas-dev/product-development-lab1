@@ -15,7 +15,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [x] Reproducción ejecutada de un pronóstico pasado con versiones de código/datos (p. 2 y 4). Desde un clon limpio de GitHub (`4e2eec9`) con `dvc pull` desde Drive, `reproduce --day 2017-08-05` dio `identical: true` en 5 archivos (2026-11-10).
 - [x] Airflow 3 en Compose: ingesta/validación, preparación, pronóstico/pedido y seguimiento (p. 2). Los 17 cortes, del 2017-08-01 al 08-17, terminaron en `success` sobre el commit `ddb8e1d`. Las capturas de la interfaz se registran en el criterio de evidencias.
 - [x] Idempotencia, rechazo de datos inválidos y tratamiento explícito de ausencias esperables (p. 2). Petróleo del 08-09 en `rejections`; pruebas en `tests/test_operation.py` (60 pruebas OK con unittest el 2026-11-10).
-- [ ] Backfill y reprocesamiento de correcciones, módulos probados y DAGs delgados (p. 3).
+- [x] Backfill y reprocesamiento de correcciones, módulos probados y DAGs delgados (p. 3). Backfill en Airflow del 08-03 al 08-05 (2026-11-10): `success`, sin reingesta (`new_deliveries: 0`) y publicaciones `already_published`; 547 de 548 salidas idénticas. Limitación conocida: `latest.json` retrocede con el backfill (DECISIONES 17). Correcciones: `corrections_applied` desde el corte del 08-12.
 - [x] Baseline y ML híbrido que mejora pinball con validación temporal idéntica de desarrollo; calibración/holdout y negocio pendientes (p. 3).
 - [x] Métricas técnicas y de costo, criterio explícito de sustitución (p. 3). Pinball, MAE, WAPE, cobertura y costo proxy 9:1; criterio en `config/model-selection.json`.
 - [ ] README completo y decisiones justificadas sobre disponibilidad, validación y correcciones (p. 3).
@@ -48,7 +48,7 @@ Actualización de costos: el usuario confirmó que no dispone de costos reales y
 Avance de la etapa 8: operación con Airflow 3 (productor `bandeja_simulada` y consumidor diario `reposicion_diaria`), publicaciones inmutables con procedencia, cuarentena, correcciones y seguimiento. La reproducción local de la publicación del 2017-08-05 fue idéntica. Pendientes:
 - definir y documentar el acceso del equipo docente al remoto Drive (carpeta compartida y cliente OAuth);
 - publicar en GitHub con CI y protección de `main`;
-- backfill ejecutado en Airflow y período no publicado;
+- período no publicado;
 - capturas de la interfaz y tag de entrega.
 
 `dvc.lock` regenerado con `dvc repro` en la imagen `ml` (2026-11-10). Las 11 etapas dependían del `src/ingest.py` modificado en `ddb8e1d`. Ningún hash de salida cambió, así que los resultados de evaluación, comparación, pedidos y negocio no se ven afectados.
