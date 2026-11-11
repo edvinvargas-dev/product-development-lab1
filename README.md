@@ -1,106 +1,154 @@
-# Laboratorio 1: motor de reposición
+# Laboratorio 1: motor de reposición de inventario
 
-Estado: ingesta temporal, baseline/ML, comparación y mecanismo de objetivos de abastecimiento/costos con DVC local. Los costos usan un supuesto académico relativo 9:1, no valores reales de Favorita. El producto completo y Airflow aún no están implementados. Decisiones y supuestos en [DECISIONES.md](DECISIONES.md); requisitos pendientes en [docs/ACEPTACION.md](docs/ACEPTACION.md).
+Producto de ML que, en cada fecha de corte y sin intervención manual, transforma las entregas diarias de datos de Corporación Favorita en:
 
-## Recorrido disponible
+1. **Pronóstico diario** por tienda y familia para los 7 días siguientes, con incertidumbre (cuantiles 0.1 / 0.5 / 0.9).
+2. **Pedido sugerido** (objetivo diario de abastecimiento) derivado del pronóstico y de los costos de faltante y merma de [`config/costs.json`](config/costs.json). Si cambian los costos, cambia la recomendación sin tocar el código.
+3. **Seguimiento del desempeño**: compara las publicaciones anteriores con las ventas reales a medida que se conocen, incluyendo las correcciones.
 
-Desde la raíz del proyecto, en WSL con Python 3.10 o posterior:
+Usa Git, DVC y Apache Airflow 3, de modo que cada publicación se puede rastrear hasta el código, los datos y el modelo que la produjeron. Las decisiones y su justificación están en [DECISIONES.md](DECISIONES.md), y el estado frente al enunciado en [docs/ACEPTACION.md](docs/ACEPTACION.md).
+
+## Levantar y ejecutar desde cero
+
+Requisitos: Docker con Compose v2 (Docker Desktop en Windows o macOS, o Docker Engine en Linux), unos 4 GB de RAM libres y Git. No hace falta instalar Python.
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m src.audit
+git clone https://github.com/edvinvargas-dev/product-development-lab1.git laboratorio1 && cd laboratorio1
+mkdir -p dataOriginal
+# Copiar a dataOriginal/ los cinco CSV de Kaggle (store-sales-time-series-forecasting):
+#   train.csv  stores.csv  holidays_events.csv  oil.csv  transactions.csv
+# (test.csv y sample_submission.csv no se usan)
+echo "AIRFLOW_UID=$(id -u)" > .env        # en Linux; en Windows/macOS basta copiar .env.example a .env
+docker compose up -d
 ```
 
-Colocar los cinco originales de Kaggle en `dataOriginal/`: `train.csv`, `stores.csv`, `holidays_events.csv`, `oil.csv` y `transactions.csv`. No se requieren ni se leen `test.csv` o `sample_submission.csv`. La auditoría solo lee los originales y genera `reports/generated/audit.json`, ignorado por Git. Repite el comando para reconstruirlo; no equivale todavía a un pipeline DVC.
+Abrir <http://localhost:8080>. La interfaz no pide usuario: el SimpleAuthManager está en modo local con todos como administradores. Si el puerto está ocupado, se cambia con `AIRFLOW_PORT=8081` en `.env`.
 
-La auditoría lee train en bloques de 50 000 filas, comprueba claves fecha/tienda/familia, cobertura, faltantes, ceros, negativos y máximos por familia. Su diagnóstico no reemplaza la futura validación de ingesta.
+**No hay que hacer nada más.** Al levantar Compose:
 
-## Recorrido temporal disponible
+1. `bandeja_simulada` (productor, `@once`) genera la bandeja inmutable desde `dataOriginal/` según [`config/operacion.json`](config/operacion.json). Tarda alrededor de 1–2 minutos.
+2. `reposicion_diaria` (consumidor, `@daily`, `catchup=True`) espera a la bandeja y recorre cada día del periodo configurado, del 2017-08-01 al 2017-08-17, con estas tareas:
 
-El [tutorial de ingesta](docs/INGESTA_TEMPORAL.md) explica los supuestos y comandos. `config/simulation.json` define una muestra de julio y la primera semana de agosto de 2017. El productor `src.simulate` genera una bandeja nueva, `src.ingest` registra únicamente entregas disponibles y `src.snapshot` reconstruye los datos conocidos en un corte. Se usan las cinco fuentes; no se requieren paquetes adicionales.
+```
+esperar_bandeja ─┐
+resolver_corte ──┴─> ingesta_y_validacion_entregas -> preparacion_snapshot -> validacion_cruzada
+                                                     -> pronostico_y_pedido -> seguimiento
+```
 
-Ya se ejecutaron cortes del 1, 5 y 6 de agosto. Las salidas están bajo `data/`, ignoradas por Git. DVC referencia la bandeja y el registro, y define la reconstrucción del corte del 1 de agosto en un directorio derivado separado. El baseline usa ese snapshot; Airflow sigue pendiente.
+Cada corte tarda alrededor de 1 minuto en una laptop. Las ejecuciones son secuenciales (`max_active_runs=1`).
 
-## Herramientas reproducibles con Docker
+### Salidas
 
-Desde Ubuntu, con Docker Desktop activo:
+| Ruta | Contenido |
+|---|---|
+| `data/scenarios/operacion-v1/inbox/` | Bandeja: un archivo por fuente, fecha y revisión, más `manifest.json`. Es externa e inmutable |
+| `data/ingestion/operacion-v1.json` | Registro de ingesta: `receipts` con `ingested_at` y `rejections` (cuarentena) |
+| `data/processed/operacion-v1/<día>/` | Snapshot de lo conocido en el corte, que es la entrada preparada para el modelo |
+| `data/published/operacion-v1/<día>/<id>/` | **Publicación inmutable**: `forecast.csv`, `orders.csv`, `model.json`, `validation.json`, `manifest.json` y `provenance.json` (commit de Git) |
+| `data/tracking/operacion-v1/<día>/report.md` | **Reporte de seguimiento** legible, junto con `tracking.json` |
+
+### Periodo nuevo o no publicado
+
+Para operar sobre otro periodo:
+1. Colocar los CSV con ese periodo en `dataOriginal/`.
+2. En `config/operacion.json`, cambiar `scenario_id` y las rutas `operacion-v1`, `history_end` (fin de la carga histórica inicial) y `operation.start_date` / `end_date`. `delivery_end: "auto"` toma la última fecha de ventas disponible. Los incidentes simulados que queden fuera del rango se ignoran.
+3. Volver a levantar: `docker compose up -d`. Si Airflow ya estaba arriba, se reinicia con `docker compose restart`.
+
+### Backfill y reprocesamiento
+
+```bash
+docker compose exec airflow-scheduler airflow backfill create --dag-id reposicion_diaria \
+  --from-date 2017-08-03 --to-date 2017-08-05 --reprocess-behavior completed
+```
+
+- **Backfill:** reconstruye lo que se sabía en cada corte (por `ingested_at`), sin reingestar. Si nada cambió, verifica las publicaciones byte a byte y no escribe nada.
+- **Cambio de entradas:** si cambiaron el código, los costos o lo conocido, crea una publicación nueva y conserva la anterior.
+- **Correcciones:** se reflejan automáticamente en el seguimiento de cortes posteriores, en el campo `corrections_applied`.
+
+### Situaciones de operación simuladas (`config/operacion.json`)
+
+| Situación | Qué hace el producto |
+|---|---|
+| Fuentes con distinta anticipación (ventas a 1 día, petróleo y transacciones a 2) | Solo usa lo disponible e ingerido antes del corte |
+| Transacciones del 2017-08-03 con 2 días extra de retraso | Aviso, sin falla y sin imputar valores |
+| Ventas del 2017-08-07 de la tienda 44 llegan al 40 % y se corrigen (r2) 3 días después | El pronóstico publicado no se reescribe; el seguimiento usa r2 al llegar |
+| Petróleo del 2017-08-09 con un valor negativo (r2 válida 1 día después) | Cuarentena en `rejections`; no entra al modelo y no detiene el flujo |
+| Días sin precio del petróleo, ventas cero y tiendas cerradas | Situaciones esperadas: solo avisos |
+| Archivo de la bandeja alterado (hash distinto) | Falla de integridad: detiene la ejecución |
+
+## Modelos, validación y criterio de sustitución
+
+- **Baseline (vigente):** cuantiles empíricos por día de semana con las últimas 4 semanas ([docs/BASELINE.md](docs/BASELINE.md)).
+- **ML (retador):** mantiene la mediana del baseline y aprende q10/q90 con `HistGradientBoostingRegressor` y pérdida de cuantiles, con 33 variables de las cinco fuentes ([docs/MODELO_ML.md](docs/MODELO_ML.md)).
+- **Validación temporal idéntica:** 4 cortes semanales de julio de 2017, mismos 49,896 casos, sin fuga de información ([docs/EVALUACION_TEMPORAL.md](docs/EVALUACION_TEMPORAL.md)).
+
+| Métrica (desarrollo, julio 2017) | Baseline | ML | Cambio |
+|---|---:|---:|---:|
+| Pinball medio | 22.27 | 21.13 | **−5.12 %** (mejor en 3 de 4 cortes) |
+| MAE / WAPE de la mediana | 61.23 / 0.1287 | igual | igual por diseño |
+| Cobertura del intervalo 80 % | 57.3 % | 64.2 % | más cerca del nominal |
+| Costo proxy 9:1 (negocio) | — | — | **−10.45 %** |
+
+**Criterio de sustitución** ([config/model-selection.json](config/model-selection.json), registrado antes de entrenar). Para pasar el corte técnico, el ML debe cumplir todo esto: pinball ≥ 5 % menor, mejor en ≥ 3 de 4 cortes, MAE sin aumento, cobertura no más lejos del 80 % y mismos casos completos. Para **reemplazar al vigente** debe cumplir además: holdout independiente, |cobertura − 0.80| ≤ 0.10 y costo de negocio no peor. Hoy el ML **pasa el corte técnico y gana en costo**, pero su cobertura (64 %) está fuera de la tolerancia y falta el holdout. Por eso el modelo vigente en Airflow sigue siendo el baseline, y el criterio no se rebajó después de ver los resultados (DECISIONES 12 y 16).
+
+Reproducir la comparación (imagen `ml` con scikit-learn):
+
+```bash
+docker compose -f compose.tools.yaml build tools ml
+docker compose -f compose.tools.yaml run --rm ml dvc repro model_comparison business_configured
+```
+
+## Costos
+
+En `config/costs.json`, el faltante vale 9 y el exceso o merma vale 1, en unidades relativas. Eso implica el cuantil crítico 9/(9+1) = 0.9. Es un **supuesto académico**: los CSV no contienen costos, márgenes ni inventario (DECISIONES 15). Se pueden definir excepciones por familia con `family_overrides`. Como no hay inventario disponible, la salida es un objetivo diario (`target_quantity`) y `net_order_quantity` queda vacío. No se inventa stock ([docs/PEDIDOS_Y_COSTOS.md](docs/PEDIDOS_Y_COSTOS.md)).
+
+## Versionado con DVC y reproducción de un pronóstico pasado
+
+Git no guarda datos ni modelos. El remoto DVC configurado es Google Drive (`.dvc/config`). Hoy están versionados con DVC:
+- originales (`dataOriginal.dvc`);
+- bandeja, registro y escenario de evaluación de desarrollo (`scenario.dvc`, `ingestion.dvc`, `evaluation-scenario.dvc`);
+- snapshots, modelos, pronósticos, evaluación y comparación de `dvc.yaml` / `dvc.lock`.
+
+**Pendiente:** versionar con DVC las salidas de la operación (`data/scenarios/operacion-v1`, `data/ingestion/operacion-v1.json`, `data/processed/`, `data/published/` y `data/tracking/`) y enviar los artefactos al remoto (`dvc push`). Hasta entonces, esas salidas solo existen en la copia local.
+
+Reproducir una publicación pasada a partir de su versión de código y de datos:
+
+```bash
+git checkout <commit-de-la-publicacion>   # versión del código (está en provenance.json)
+dvc pull                                  # versión de los datos (requiere acceso al remoto)
+docker compose -f compose.tools.yaml run --rm tools python -m src.operation reproduce --day 2017-08-05
+```
+
+`reproduce` reconstruye el snapshot del corte desde la bandeja y el registro versionados. Después reajusta el modelo, vuelve a pronosticar y a calcular el pedido en `data/reproduction/`, y compara cada archivo con la publicación original. Si todo coincide, termina con código 0.
+
+**Evidencia (2026-11-10, copia local):** se reprodujo la publicación `751908fb5128` del corte 2017-08-05. Los cinco archivos (`forecast.csv`, `orders.csv`, `model.json`, `validation.json` y `manifest.json`) son idénticos byte a byte (`"identical": true`, código de salida 0). Por ejemplo, `forecast.csv` tiene SHA-256 `e7d86b57…cdee20`. Falta repetir la prueba desde un clon limpio con `dvc pull`.
+
+## Pruebas y CI
 
 ```bash
 docker compose -f compose.tools.yaml build tools
-docker compose -f compose.tools.yaml run --rm tools
-docker compose -f compose.tools.yaml run --rm tools dvc repro snapshot_demo
-docker compose -f compose.tools.yaml run --rm tools dvc status
+docker compose -f compose.tools.yaml run --rm tools          # pytest
+python3 -m unittest discover -s tests -v                      # sin dependencias (WSL o Linux)
 ```
 
-El primer comando construye las herramientas con las versiones de `requirements/tools.lock`; el segundo ejecuta pytest. Los otros reconstruyen el snapshot y consultan DVC localmente, usando las entradas preparadas en la etapa anterior. Ver [ENTORNO_DVC.md](docs/ENTORNO_DVC.md) para reconstruirlas cuando no existen. El contenedor trabaja sin red y sin acceso al contenido de `.dvc/config.local`; la construcción sí necesita descargar la base y dependencias.
+GitHub Actions ([.github/workflows/pruebas.yml](.github/workflows/pruebas.yml)) ejecuta pytest en cada Pull Request, incluidas las pruebas del ML. Todas usan datos sintéticos. **Pendiente:** verificar el workflow en GitHub y proteger `main`, para que los cambios entren solo por PR con las pruebas aprobadas.
 
-`scenario.dvc` e `ingestion.dvc` referencian entradas; `dvc.yaml` y `dvc.lock` describen la transformación y sus hashes. Se conserva el remoto Google Drive existente y todavía no se han enviado artefactos nuevos.
+## Estructura
 
-## Notebook
-
-`analisis_exploratorio.ipynb` permanece intacto y está ignorado por Git. La copia `notebooks/analisis_exploratorio_revisado.ipynb` corrige el máximo por familia y se conserva sin salidas ni resultados de datos, lista para versionar. Requiere pandas y Jupyter, aún no preparados en WSL. No se ha ejecutado esa copia completa desde WSL.
-
-## Primer baseline
-
-```bash
-docker compose -f compose.tools.yaml run --rm tools dvc repro baseline_predict
+```
+config/     operacion.json, baseline.json, costs.json, ml.json, model-selection.json, ...
+dags/       bandeja_simulada.py (productor), reposicion_diaria.py (consumidor): solo orquestan
+src/        operation.py (pasos por corte), simulate.py, ingest.py, snapshot.py, validate_snapshot.py,
+            baseline.py, ml.py, orders.py, tracking.py, metrics.py, evaluation.py, ...
+tests/      pruebas con datos sintéticos (ingesta, correcciones, idempotencia, modelos, pedidos, operación)
+docs/       tutoriales y aceptación;  docker/  imágenes de herramientas y ML
+docker-compose.yaml  Airflow 3.3.2 + PostgreSQL;  compose.tools.yaml  herramientas DVC/pytest/ML
 ```
 
-El baseline usa ventas recientes del mismo día de semana y genera cuantiles 0.1/0.5/0.9 por tienda/familia para siete días posteriores al corte. El [tutorial del baseline](docs/BASELINE.md) explica ventana, respaldo por historia insuficiente y artefactos. El modelo está en `models/baseline-demo/` y el pronóstico en `forecasts/baseline-demo/`, ambos bajo DVC y fuera de Git. Ya hay comparación temporal con el candidato ML y objetivos de abastecimiento derivados de costos relativos configurables.
+## Recorridos de desarrollo anteriores
 
-## Evaluación temporal de desarrollo
-
-Con la nueva bandeja de evaluación preparada:
-
-```bash
-docker compose -f compose.tools.yaml run --rm tools dvc repro baseline_backtest
-```
-
-Se evalúan cuatro cortes semanales de julio con casos, snapshots y reales congelados. Los resultados por corte y globales se guardan en `data/evaluation/baseline-dev-v1/metrics.json`, bajo DVC. El [tutorial de evaluación](docs/EVALUACION_TEMPORAL.md) contiene la preparación desde cero y explica MAE, WAPE, pinball y cobertura. El contexto común de `data/evaluation/dev-context-v1/` se reutiliza en la evaluación ML; los reales posteriores al corte nunca se entregan a la función de ajuste.
-
-## Primer ML y comparación
-
-```bash
-docker compose -f compose.tools.yaml build ml
-docker compose -f compose.tools.yaml run --rm ml
-docker compose -f compose.tools.yaml run --rm ml dvc repro model_comparison
-```
-
-La imagen `ml` añade cinco dependencias científicas sin actualizar las 117 de `tools`. Usar `ml` para ejecutar la suite completa, incluido el modelo. Se conservan los mismos casos del baseline. El candidato mantiene q50 y aprende q10/q90 con boosting; redujo el pinball medio un 5.1189 %, con MAE idéntico y cobertura de 64.2296 %.
-
-Pasó el criterio técnico registrado antes de entrenar, pero no se promovió: siguen pendientes condiciones de la política de sustitución, como calibración suficiente, holdout y evidencia de negocio verificada. La evaluación disponible usa costos relativos ilustrativos. Ver [MODELO_ML.md](docs/MODELO_ML.md) para diseño, variables, resultados por corte y reproducción de los modelos guardados. Los artefactos están en `data/evaluation/ml-dev-v1/` y `comparison-v1/`, bajo DVC local, fuera de Git.
-
-## Objetivos de abastecimiento y costos
-
-```bash
-docker compose -f compose.tools.yaml run --rm ml dvc repro orders_configured orders_example business_example
-```
-
-`config/costs.json` adopta un supuesto académico de trabajo: faltante 9 y merma/exceso 1 en unidades relativas. El usuario confirmó que no dispone de costos reales; tampoco están en los cinco CSV. El ejemplo separado `config/examples/costs-relative-9-1.json` conserva la referencia ilustrativa. Hay costos por defecto y excepciones por familia; cambiar su relación cambia el cuantil elegido sin modificar código.
-
-Las salidas tienen cantidad objetivo y stock desconocido; no se presenta un pedido neto de inventario. La [guía de pedidos y costos](docs/PEDIDOS_Y_COSTOS.md) explica fórmula, interpolación, límites y métrica de negocio proxy. Las salidas y la comparación ilustrativa están bajo `data/orders/` y `data/evaluation/business-example-9-1/`, versionadas con DVC. Los valores son modificables y no constituyen pérdidas monetarias observadas. Falta conectar publicaciones y seguimiento.
-
-## Entorno verificado
-
-WSL2 Ubuntu y Docker Desktop con motor Linux accesible. Las herramientas del contenedor usan Python 3.12; el Python del host continúa independiente. Comprobar desde la terminal:
-
-```bash
-docker version
-docker compose version
-docker info --format '{{.OSType}}'
-```
-
-Si vuelve a faltar la integración, abrir Docker Desktop y habilitar Ubuntu en Settings → Resources → WSL Integration. La `.venv` existente es de Windows: no se reutiliza desde WSL. El intento de `.venv-wsl` quedó incompleto por falta de `ensurepip`; no se debe dar por instalado. No se han cambiado dependencias de Windows.
-
-El remoto DVC existente es Google Drive; no se ha probado una descarga desde WSL. Las credenciales permanecen en configuración local ignorada. Los hashes locales de los cinco CSV coinciden con `dataOriginal.dvc`. No hay remoto Git configurado todavía.
-
-## Etapas siguientes
-
-1. Completado: escenario conservador, carga histórica inicial, bandeja inmutable, registro y selección por corte; pruebas de retrasos/correcciones/replay.
-2. Entorno de herramientas Linux y referencias DVC locales de entradas/procesados de demostración. Pendientes: validaciones entre fuentes, calendario de polling y publicación autorizada de artefactos nuevos al remoto.
-3. Baseline, ML y comparación bajo el mismo contexto implementados, con criterio técnico previo. Métrica relativa de negocio y costos configurables disponibles. La calibración/holdout y demás condiciones adicionales para promover al ML no desplazan las tareas obligatorias de operación pendientes.
-4. Mecanismo de objetivos/costos y evaluación ilustrativa implementados. Costos relativos 9:1 configurados como supuesto académico. Pendientes: publicaciones inmutables y seguimiento operativo.
-5. Airflow 3, Compose, pytest/CI, documentación de reconstrucción y evidencias completas.
-6. GitHub y protección mediante acciones autorizadas, revisión de aceptación y tag local de entrega.
-
-Las instrucciones para reconstruir el producto completo se añadirán al implementar y verificar cada etapa. No existe aún evidencia de ejecución de Airflow ni de reproducción de pronósticos pasados.
+Estos recorridos siguen disponibles y se documentan en sus tutoriales:
+- auditoría de originales (`python3 -m src.audit`);
+- ingesta temporal de demostración ([docs/INGESTA_TEMPORAL.md](docs/INGESTA_TEMPORAL.md));
+- entorno DVC local ([docs/ENTORNO_DVC.md](docs/ENTORNO_DVC.md));
+- notebook revisado (`notebooks/analisis_exploratorio_revisado.ipynb`).

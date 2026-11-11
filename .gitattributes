@@ -1,2 +1,10 @@
 # DVC genera espacios al envolver las órdenes YAML; conservar su formato.
 dvc.lock whitespace=-blank-at-eol
+# Finales LF en archivos que leen contenedores Linux (scripts de Compose, DAGs y configuración).
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.dvc text eol=lf
