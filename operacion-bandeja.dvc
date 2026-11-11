@@ -1,0 +1,6 @@
+outs:
+- path: data/scenarios/operacion-v1/inbox
+  md5: 1f84fbdd41561c02e3880d762180afa5.dir
+  size: 5880613
+  nfiles: 308
+  hash: md5

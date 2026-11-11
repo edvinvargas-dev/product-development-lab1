@@ -1,0 +1,6 @@
+outs:
+- path: data/published/operacion-v1
+  md5: d586a50e82f6d784174396edfb3a24b9.dir
+  size: 203458380
+  nfiles: 102
+  hash: md5

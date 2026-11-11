@@ -1,0 +1,6 @@
+outs:
+- path: data/tracking/operacion-v1
+  md5: 853ab86707c8763211f9d3fc6086fd17.dir
+  size: 228422
+  nfiles: 35
+  hash: md5

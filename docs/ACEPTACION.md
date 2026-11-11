@@ -11,9 +11,9 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [x] Carga histórica inicial y bandeja por fecha/fuente, tratada como externa e inmutable. Integrada en la operación: el productor `bandeja_simulada` es parametrizable con `config/operacion.json`. El PDF no exige cargar toda la historia original en cada ejecución (p. 2).
 - [x] Disponibilidad temporal explícita, demoras y correcciones sin fuga de información (p. 2). Se separan `available_at` e `ingested_at`, y los snapshots se arman con lo conocido en cada corte (DECISIONES 16).
 - [ ] GitHub, ramas/PR, protección de rama principal y pytest en Actions en cada PR (p. 2).
-- [ ] Entradas, procesados, modelos y pronósticos publicados versionados con DVC y remoto (p. 2).
+- [ ] Entradas, procesados, modelos y pronósticos publicados versionados con DVC y remoto (p. 2). Versionado local completo: `operacion-{bandeja,registro,snapshots,publicaciones,seguimiento}.dvc` (cortes 2017-08-01 a 08-17) más `dvc.yaml`/`dvc.lock`. Falta `dvc push` al remoto.
 - [ ] Reproducción ejecutada de un pronóstico pasado con versiones de código/datos (p. 2 y 4). Local: `reproduce --day 2017-08-05` dio `identical: true` en 5 archivos (2026-11-10). Falta repetirla desde un clon con `dvc pull` cuando la operación esté versionada en DVC.
-- [ ] Airflow 3 en Compose: ingesta/validación, preparación, pronóstico/pedido y seguimiento (p. 2). Los cortes del 2017-08-01 al 08-13 terminaron en `success` sobre el commit `ddb8e1d`. Falta confirmar hasta el 08-17 y capturar la interfaz.
+- [x] Airflow 3 en Compose: ingesta/validación, preparación, pronóstico/pedido y seguimiento (p. 2). Los 17 cortes, del 2017-08-01 al 08-17, terminaron en `success` sobre el commit `ddb8e1d`. Las capturas de la interfaz se registran en el criterio de evidencias.
 - [x] Idempotencia, rechazo de datos inválidos y tratamiento explícito de ausencias esperables (p. 2). Petróleo del 08-09 en `rejections`; pruebas en `tests/test_operation.py` (60 pruebas OK con unittest el 2026-11-10).
 - [ ] Backfill y reprocesamiento de correcciones, módulos probados y DAGs delgados (p. 3).
 - [x] Baseline y ML híbrido que mejora pinball con validación temporal idéntica de desarrollo; calibración/holdout y negocio pendientes (p. 3).
@@ -46,7 +46,8 @@ Avance de la etapa 7: mecanismo de objetivos diarios derivados de costos, excepc
 Actualización de costos: el usuario confirmó que no dispone de costos reales y se comprobó que no están en los CSV. Se adoptó el supuesto académico relativo 9:1 en la configuración activa, con procedencia ilustrativa explícita; no se trata de costos observados. La generación de objetivos y la métrica `business_configured` usan el mismo archivo. El inventario no es un requisito de entrada adicional: el producto declara objetivos diarios, sin pedido neto. La integración operativa/publicaciones sigue pendiente.
 
 Avance de la etapa 8: operación con Airflow 3 (productor `bandeja_simulada` y consumidor diario `reposicion_diaria`), publicaciones inmutables con procedencia, cuarentena, correcciones y seguimiento. La reproducción local de la publicación del 2017-08-05 fue idéntica. Pendientes:
-- versionar con DVC las salidas de la operación y hacer `dvc push`;
+- hacer `dvc push` (las salidas de la operación ya están versionadas en local);
+- `dvc.lock` está desactualizado respecto de `src/ingest.py` (cambió en `ddb8e1d`): volver a ejecutar `dvc repro` en lugar de solo actualizar los hashes;
 - publicar en GitHub con CI y protección de `main`;
 - backfill ejecutado en Airflow y período no publicado;
 - capturas de la interfaz y tag de entrega.
