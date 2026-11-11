@@ -21,7 +21,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [x] README completo y decisiones justificadas sobre disponibilidad, validación y correcciones (p. 3). Revisión final del README (2026-11-11) contrastada con `comparison.json`, `business-configured-dev-v1/metrics.json`, `src/operation.py` y los tiempos de Airflow. Las decisiones están en `DECISIONES.md` (1–17).
 - [x] Ejecución sobre período no publicado sin intervención manual (p. 3). Clon limpio con una instalación nueva de Airflow: período del 2017-06-01 al 06-07 (`operacion-junio-v1`), 7 cortes en `success` con solo `config/operacion.json` modificado (2026-11-11). Evidencia en `docs/evidencia/periodo-junio-2017.md`. Requiere vaciar `delays` fuera del rango (README).
 - [x] Evidencia de UI Airflow, comparación de modelos y seguimiento (p. 4). Capturas de la interfaz y log de idempotencia en `docs/evidencia/airflow.md`. Comparación de modelos en la tabla del README (`comparison.json`, `business-configured-dev-v1`). Seguimiento en `docs/evidencia/periodo-junio-2017.md` y en los reportes por corte.
-- [ ] Repositorio accesible al equipo docente y tag `entrega-lab1` tras verificación final (p. 3–4).
+- [x] Repositorio accesible al equipo docente y tag `entrega-lab1` tras verificación final (p. 3–4). Repositorio público https://github.com/edvinvargas-dev/product-development-lab1. El tag `entrega-lab1` se crea sobre el merge de esta verificación. El acceso a los datos de Drive (`dvc pull`) requiere compartir la carpeta y entregar el cliente OAuth por un canal privado; lo gestiona el responsable del proyecto.
 
 Acciones externas pendientes de autorización: definir/crear el remoto GitHub, publicar, configurar protecciones y acceso docente. Acceso a Google Drive desde el entorno de ejecución pendiente; no se ha modificado ni reenviado el remoto existente.
 
@@ -51,3 +51,18 @@ Avance de la etapa 8: operación con Airflow 3 (productor `bandeja_simulada` y c
 - capturas de la interfaz y tag de entrega.
 
 `dvc.lock` regenerado con `dvc repro` en la imagen `ml` (2026-11-10). Las 11 etapas dependían del `src/ingest.py` modificado en `ddb8e1d`. Ningún hash de salida cambió, así que los resultados de evaluación, comparación, pedidos y negocio no se ven afectados.
+
+## Verificación final (2026-11-11, `main` en `97c08de`)
+
+| Verificación | Resultado |
+|---|---|
+| `docker compose -f compose.tools.yaml run --rm ml` (pytest) | 60 passed |
+| `python3 -m unittest discover -s tests` | 60 OK (1 omitida: requiere scikit-learn) |
+| `python -m scripts.verify_evaluation` (tools) | Evaluación restaurada desde DVC y recalculada sin diferencias |
+| `python -m scripts.verify_ml` (ml) | `comparison_reproduced: true`, 49,896 medianas idénticas, 368,874 ejemplos auditados |
+| `dvc status` | Data and pipelines are up to date |
+| `dvc status -c` (`scripts/dvc_drive_lotes.py`) | Cache and remote 'storage' are in sync |
+| GitHub Actions en `main` | `success` |
+| Protección de `main` | PR obligatorio, check `pytest` estricto, incluye administradores |
+
+Fuera del alcance de la entrega, sin promoción del ML: holdout independiente, calibración de la cobertura y costos de negocio reales (DECISIONES 12, 15 y 16). Limitación conocida: `latest.json` retrocede con el backfill (DECISIONES 17).
