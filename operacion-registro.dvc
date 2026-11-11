@@ -1,0 +1,6 @@
+outs:
+- path: data/ingestion/operacion-v1.json
+  md5: be9513b705589ade72e61983f0bde0ce
+  size: 162022
+  hash: md5
+  isexec: true

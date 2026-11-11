@@ -107,9 +107,18 @@ En `config/costs.json`, el faltante vale 9 y el exceso o merma vale 1, en unidad
 Git no guarda datos ni modelos. El remoto DVC configurado es Google Drive (`.dvc/config`). Hoy están versionados con DVC:
 - originales (`dataOriginal.dvc`);
 - bandeja, registro y escenario de evaluación de desarrollo (`scenario.dvc`, `ingestion.dvc`, `evaluation-scenario.dvc`);
-- snapshots, modelos, pronósticos, evaluación y comparación de `dvc.yaml` / `dvc.lock`.
+- snapshots, modelos, pronósticos, evaluación y comparación de `dvc.yaml` / `dvc.lock`;
+- salidas de la operación con Airflow, del corte 2017-08-01 al 2017-08-17:
 
-**Pendiente:** versionar con DVC las salidas de la operación (`data/scenarios/operacion-v1`, `data/ingestion/operacion-v1.json`, `data/processed/`, `data/published/` y `data/tracking/`) y enviar los artefactos al remoto (`dvc push`). Hasta entonces, esas salidas solo existen en la copia local.
+| Archivo DVC | Ruta | Contenido |
+|---|---|---|
+| `operacion-bandeja.dvc` | `data/scenarios/operacion-v1/inbox` | Bandeja externa e inmutable (308 archivos) |
+| `operacion-registro.dvc` | `data/ingestion/operacion-v1.json` | Registro de ingesta con `receipts` y `rejections` |
+| `operacion-snapshots.dvc` | `data/processed/operacion-v1` | Snapshots por corte |
+| `operacion-publicaciones.dvc` | `data/published/operacion-v1` | 17 publicaciones inmutables: modelo, pronóstico, pedido y procedencia |
+| `operacion-seguimiento.dvc` | `data/tracking/operacion-v1` | Seguimiento por corte |
+
+Estos archivos se generan con `docker compose -f compose.tools.yaml run --rm tools dvc add <ruta>` y se guardan en la caché local de DVC. **Pendiente:** enviarlos al remoto (`dvc push`). Hasta entonces, `dvc pull` desde otro clon no los encontrará.
 
 Reproducir una publicación pasada a partir de su versión de código y de datos:
 

@@ -1,0 +1,6 @@
+outs:
+- path: data/processed/operacion-v1
+  md5: e360cdfd95d4cb540b79a8d1a3538e9b.dir
+  size: 89814806
+  nfiles: 102
+  hash: md5
