@@ -47,7 +47,8 @@ Actualización de costos: el usuario confirmó que no dispone de costos reales y
 
 Avance de la etapa 8: operación con Airflow 3 (productor `bandeja_simulada` y consumidor diario `reposicion_diaria`), publicaciones inmutables con procedencia, cuarentena, correcciones y seguimiento. La reproducción local de la publicación del 2017-08-05 fue idéntica. Pendientes:
 - hacer `dvc push` (las salidas de la operación ya están versionadas en local);
-- `dvc.lock` está desactualizado respecto de `src/ingest.py` (cambió en `ddb8e1d`): volver a ejecutar `dvc repro` en lugar de solo actualizar los hashes;
 - publicar en GitHub con CI y protección de `main`;
 - backfill ejecutado en Airflow y período no publicado;
 - capturas de la interfaz y tag de entrega.
+
+`dvc.lock` regenerado con `dvc repro` en la imagen `ml` (2026-11-10). Las 11 etapas dependían del `src/ingest.py` modificado en `ddb8e1d`. Ningún hash de salida cambió, así que los resultados de evaluación, comparación, pedidos y negocio no se ven afectados.

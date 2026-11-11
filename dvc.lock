@@ -32,8 +32,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/snapshot.py
       hash: md5
@@ -78,8 +78,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/validate_snapshot.py
       hash: md5
@@ -118,8 +118,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/validate_snapshot.py
       hash: md5
@@ -169,8 +169,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/metrics.py
       hash: md5
@@ -235,8 +235,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/metrics.py
       hash: md5
@@ -326,8 +326,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/metrics.py
       hash: md5
@@ -398,8 +398,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/selection.py
       hash: md5
@@ -443,8 +443,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/orders.py
       hash: md5
@@ -489,8 +489,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/orders.py
       hash: md5
@@ -557,8 +557,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/metrics.py
       hash: md5
@@ -644,8 +644,8 @@ stages:
       isexec: true
     - path: src/ingest.py
       hash: md5
-      md5: 1ecb98cd884dd99fa79a196eba8765ca
-      size: 4595
+      md5: c1359d4b28593c7247373c37ef51fad5
+      size: 5867
       isexec: true
     - path: src/metrics.py
       hash: md5
