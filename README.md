@@ -51,8 +51,20 @@ Cada corte tarda alrededor de 1 minuto en una laptop. Las ejecuciones son secuen
 
 Para operar sobre otro periodo:
 1. Colocar los CSV con ese periodo en `dataOriginal/`.
-2. En `config/operacion.json`, cambiar `scenario_id` y las rutas `operacion-v1`, `history_end` (fin de la carga histórica inicial) y `operation.start_date` / `end_date`. `delivery_end: "auto"` toma la última fecha de ventas disponible. Los incidentes simulados que queden fuera del rango se ignoran.
-3. Volver a levantar: `docker compose up -d`. Si Airflow ya estaba arriba, se reinicia con `docker compose restart`.
+2. En `config/operacion.json`:
+   - cambiar `scenario_id` y las seis rutas de `paths` que contienen `operacion-v1`;
+   - ajustar `history_start` / `history_end` (carga histórica inicial) y `operation.start_date` / `end_date`. `delivery_end: "auto"` toma la última fecha de ventas disponible; también acepta una fecha;
+   - **vaciar `delays` (`"delays": []`) o mover sus fechas dentro del nuevo rango.** Una demora fuera del rango detiene el productor con `ValueError: Demora fuera del escenario o para fuente estática`. En cambio, las `corrections` e `invalid_deliveries` fuera del rango se ignoran.
+3. Levantar Airflow:
+   - **Instalación nueva** (sin corridas previas): `docker compose up -d`. El productor y el consumidor corren solos.
+   - **Instalación que ya corrió otro escenario:** `bandeja_simulada` es `@once` y no vuelve a ejecutarse con un reinicio. Hay que reiniciar los servicios para que el consumidor tome las fechas nuevas y lanzar el productor:
+     ```bash
+     docker compose restart
+     docker compose exec airflow-scheduler airflow dags trigger bandeja_simulada
+     ```
+     Otra opción es empezar desde cero con `docker compose down -v && docker compose up -d`, que borra el historial de Airflow pero no los archivos de `data/`. La prueba registrada abajo usó una instalación nueva; la vía de `trigger` sobre una instalación existente no se ha ejecutado.
+
+*Evidencia (2026-11-11):* desde un clon limpio de `main` (`3df246f`), con una instalación nueva y solo `config/operacion.json` modificado (escenario `operacion-junio-v1`, historia del 2017-04-01 al 05-31 y operación del **2017-06-01 al 06-07**, un periodo nunca publicado), `docker compose up -d` generó la bandeja (285 entregas) y publicó los 7 cortes en `success`, con seguimiento, sin intervención manual. Ver [docs/evidencia/periodo-junio-2017.md](docs/evidencia/periodo-junio-2017.md).
 
 ### Backfill y reprocesamiento
 
