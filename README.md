@@ -118,7 +118,21 @@ Git no guarda datos ni modelos. El remoto DVC configurado es Google Drive (`.dvc
 | `operacion-publicaciones.dvc` | `data/published/operacion-v1` | 17 publicaciones inmutables: modelo, pronóstico, pedido y procedencia |
 | `operacion-seguimiento.dvc` | `data/tracking/operacion-v1` | Seguimiento por corte |
 
-Estos archivos se generan con `docker compose -f compose.tools.yaml run --rm tools dvc add <ruta>` y se guardan en la caché local de DVC. **Pendiente:** enviarlos al remoto (`dvc push`). Hasta entonces, `dvc pull` desde otro clon no los encontrará.
+Estos archivos se generan con `docker compose -f compose.tools.yaml run --rm tools dvc add <ruta>`. El 2026-11-10 se enviaron al remoto con `dvc push` (174 archivos), y `dvc status -c` confirmó "Cache and remote 'storage' are in sync".
+
+**Acceso al remoto desde WSL.** La imagen `tools` no tiene red, así que el push y el pull se hacen con un entorno local:
+
+```bash
+sudo apt install -y python3-venv
+python3 -m venv .venv-wsl
+.venv-wsl/bin/pip install "dvc[gdrive]==3.67.1" "dvc-gdrive==3.0.1" \
+  "pyOpenSSL==24.2.1" "cryptography==43.0.3" "PyDrive2==1.21.3" "asyncssh==2.22.0"
+.venv-wsl/bin/python scripts/dvc_drive_lotes.py pull       # o: push, status -c
+```
+
+Las versiones de `pyOpenSSL` y `cryptography` se fijan igual que en `requirements/tools.lock`. Si pip elige otras, DVC falla con `module 'lib' has no attribute 'GEN_EMAIL'`.
+
+`scripts/dvc_drive_lotes.py` ejecuta DVC dividiendo en lotes las consultas a Google Drive. PyDrive2 1.21.3 arma una sola consulta con todas las carpetas del remoto (unas 190, más de 9 KB), y Drive la rechaza con `400 Bad Request`. El script no modifica los paquetes instalados.
 
 Reproducir una publicación pasada a partir de su versión de código y de datos:
 
