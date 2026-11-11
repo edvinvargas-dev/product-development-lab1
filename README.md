@@ -35,7 +35,7 @@ resolver_corte ──┴─> ingesta_y_validacion_entregas -> preparacion_snapsh
                                                      -> pronostico_y_pedido -> seguimiento
 ```
 
-Cada corte tarda alrededor de 1 minuto en una laptop. Las ejecuciones son secuenciales (`max_active_runs=1`).
+En una laptop, cada corte del escenario `operacion-v1` tardó entre 1.5 y 3 minutos. El primero tardó unos 5.5 minutos porque incluye la espera de la bandeja. Los 17 cortes terminaron en menos de una hora. Las ejecuciones son secuenciales (`max_active_runs=1`).
 
 ### Salidas
 
@@ -101,9 +101,14 @@ docker compose exec airflow-scheduler airflow backfill create --dag-id reposicio
 | Pinball medio | 22.27 | 21.13 | **−5.12 %** (mejor en 3 de 4 cortes) |
 | MAE / WAPE de la mediana | 61.23 / 0.1287 | igual | igual por diseño |
 | Cobertura del intervalo 80 % | 57.3 % | 64.2 % | más cerca del nominal |
-| Costo proxy 9:1 (negocio) | — | — | **−10.45 %** |
+| Costo proxy 9:1 medio por decisión (supuesto académico) | 222.48 | 199.23 | **−10.45 %** |
 
-**Criterio de sustitución** ([config/model-selection.json](config/model-selection.json), registrado antes de entrenar). Para pasar el corte técnico, el ML debe cumplir todo esto: pinball ≥ 5 % menor, mejor en ≥ 3 de 4 cortes, MAE sin aumento, cobertura no más lejos del 80 % y mismos casos completos. Para **reemplazar al vigente** debe cumplir además: holdout independiente, |cobertura − 0.80| ≤ 0.10 y costo de negocio no peor. Hoy el ML **pasa el corte técnico y gana en costo**, pero su cobertura (64 %) está fuera de la tolerancia y falta el holdout. Por eso el modelo vigente en Airflow sigue siendo el baseline, y el criterio no se rebajó después de ver los resultados (DECISIONES 12 y 16).
+**Criterio de sustitución** ([config/model-selection.json](config/model-selection.json), registrado antes de entrenar). Para pasar el corte técnico, el ML debe cumplir todo esto: pinball ≥ 5 % menor, mejor en ≥ 3 de 4 cortes, MAE sin aumento, cobertura no más lejos del 80 % y mismos casos completos. Para **reemplazar al vigente** debe cumplir además: holdout independiente, |cobertura − 0.80| ≤ 0.10 y costo de negocio no peor. Hoy el ML **pasa el corte técnico** (`development_decision: candidate_for_holdout`) y reduce el costo proxy 9:1. Sin embargo, `data/evaluation/comparison-v1/comparison.json` registra tres condiciones de producción sin cumplir:
+- no hay holdout independiente;
+- su cobertura (64 %) está fuera de la tolerancia de 0.10;
+- la no inferioridad del costo de negocio no está probada, porque el 9:1 es un supuesto académico y no un costo real verificado.
+
+Por eso `production_decision` es `retain_baseline_pending_required_evidence`: el modelo vigente en Airflow sigue siendo el baseline. El criterio no se rebajó después de ver los resultados (DECISIONES 12 y 16).
 
 Reproducir la comparación (imagen `ml` con scikit-learn):
 
@@ -159,10 +164,15 @@ Las versiones de `pyOpenSSL` y `cryptography` se fijan igual que en `requirement
 Reproducir una publicación pasada a partir de su versión de código y de datos:
 
 ```bash
-git checkout <commit-de-la-publicacion>   # versión del código (está en provenance.json)
-dvc pull                                  # versión de los datos (requiere acceso al remoto)
+# Desde main, que contiene los archivos .dvc de la operación:
+.venv-wsl/bin/python scripts/dvc_drive_lotes.py pull \
+  operacion-bandeja.dvc operacion-registro.dvc operacion-publicaciones.dvc   # versión de los datos
+git diff --stat <commit> HEAD -- src config   # <commit> está en provenance.json de la publicación
+# Si hay diferencias, traer el código de ese commit:  git checkout <commit> -- src config
 docker compose -f compose.tools.yaml run --rm tools python -m src.operation reproduce --day 2017-08-05
 ```
+
+No se usa `git checkout <commit>` completo porque los archivos `operacion-*.dvc` se agregaron después del commit que generó las publicaciones (`ddb8e1d`). Para las 17 publicaciones de `operacion-v1`, `src/` y `config/` en `main` son idénticos a `ddb8e1d`, así que no hace falta traer código anterior.
 
 `reproduce` reconstruye el snapshot del corte desde la bandeja y el registro versionados. Después reajusta el modelo, vuelve a pronosticar y a calcular el pedido en `data/reproduction/`, y compara cada archivo con la publicación original. Si todo coincide, termina con código 0.
 
@@ -178,7 +188,12 @@ docker compose -f compose.tools.yaml run --rm tools          # pytest
 python3 -m unittest discover -s tests -v                      # sin dependencias (WSL o Linux)
 ```
 
-GitHub Actions ([.github/workflows/pruebas.yml](.github/workflows/pruebas.yml)) ejecuta pytest en cada Pull Request, incluidas las pruebas del ML. Todas usan datos sintéticos. **Pendiente:** verificar el workflow en GitHub y proteger `main`, para que los cambios entren solo por PR con las pruebas aprobadas.
+GitHub Actions ([.github/workflows/pruebas.yml](.github/workflows/pruebas.yml)) ejecuta pytest en cada Pull Request y en cada push a `main`, incluidas las pruebas del ML. Todas usan datos sintéticos.
+
+**Flujo de trabajo en GitHub:**
+- **Protección de `main`:** solo acepta cambios por Pull Request, con el check `pytest` aprobado y la rama al día. La regla incluye a los administradores; no se permite force push ni borrar la rama.
+- **Ramas:** cada cambio se hizo en una rama propia (`feature/…`, `fix/…`, `docs/…`) y entró por PR con merge commit, para conservar los commits referenciados en `provenance.json`.
+- **Historial:** ver los [Pull Requests del repositorio](https://github.com/edvinvargas-dev/product-development-lab1/pulls?q=is%3Apr).
 
 ## Estructura
 
@@ -188,7 +203,9 @@ dags/       bandeja_simulada.py (productor), reposicion_diaria.py (consumidor): 
 src/        operation.py (pasos por corte), simulate.py, ingest.py, snapshot.py, validate_snapshot.py,
             baseline.py, ml.py, orders.py, tracking.py, metrics.py, evaluation.py, ...
 tests/      pruebas con datos sintéticos (ingesta, correcciones, idempotencia, modelos, pedidos, operación)
-docs/       tutoriales y aceptación;  docker/  imágenes de herramientas y ML
+scripts/    verificaciones y dvc_drive_lotes.py (DVC con consultas a Drive por lotes)
+docs/       tutoriales, aceptación y evidencia/ (ejecuciones registradas);  docker/  imágenes de herramientas y ML
+operacion-*.dvc  referencias DVC de las salidas de la operación (bandeja, registro, snapshots, publicaciones, seguimiento)
 docker-compose.yaml  Airflow 3.3.2 + PostgreSQL;  compose.tools.yaml  herramientas DVC/pytest/ML
 ```
 
