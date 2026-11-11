@@ -1,0 +1,10 @@
+{
+  "evaluation_id": "desarrollo-julio-v1",
+  "purpose": "development",
+  "poll_start": "2017-07-04T13:00:00Z",
+  "as_of": "2017-08-03T13:00:00Z",
+  "poll_step_days": 1,
+  "cutoffs": ["2017-07-04T13:00:00Z", "2017-07-11T13:00:00Z", "2017-07-18T13:00:00Z", "2017-07-25T13:00:00Z"],
+  "horizon_days": 7,
+  "quantiles": [0.1, 0.5, 0.9]
+}

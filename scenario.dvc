@@ -1,0 +1,6 @@
+outs:
+- path: data/scenarios/conservador-demo-v1/inbox
+  md5: cb59770ccbe29dad55ea688975c15424.dir
+  size: 2904882
+  nfiles: 154
+  hash: md5

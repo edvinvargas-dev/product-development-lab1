@@ -1,0 +1,7 @@
+{
+  "horizon_days": 7,
+  "lookback_days": 28,
+  "quantiles": [0.1, 0.5, 0.9],
+  "min_weekday_observations": 3,
+  "min_fallback_observations": 7
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenario_id": "ilustrativo-9-1-v1",
+  "description": "Ejemplo para revisión y pruebas, no costos reales de Favorita ni política activa.",
+  "cost_basis": "illustrative_relative",
+  "cost_unit": "relative_cost_unit",
+  "defaults": {"shortage_per_unit": 9.0, "excess_per_unit": 1.0},
+  "family_overrides": {},
+  "quantile_rule": "linear_interpolation_no_extrapolation",
+  "quantity_type": "daily_supply_target"
+}

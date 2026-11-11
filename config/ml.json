@@ -1,0 +1,19 @@
+{
+  "candidate_id": "hgb-residual-tails-v1",
+  "horizon_days": 7,
+  "quantiles": [0.1, 0.5, 0.9],
+  "median_strategy": "baseline",
+  "minimum_training_history_days": 14,
+  "training_origin_stride_days": 3,
+  "training_origin_lookback_days": 28,
+  "minimum_scale": 1.0,
+  "scale_floor_fraction": 0.1,
+  "max_iter": 100,
+  "learning_rate": 0.07,
+  "max_leaf_nodes": 15,
+  "min_samples_leaf": 80,
+  "l2_regularization": 1.0,
+  "random_state": 42,
+  "threads": 1,
+  "early_stopping": false
+}

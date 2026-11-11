@@ -1,0 +1,30 @@
+{
+  "description": "Operación diaria del producto. Para un periodo nuevo: colocar los CSV en dataOriginal/, ajustar fechas y usar otro scenario_id.",
+  "simulation": {
+    "scenario_id": "operacion-v1",
+    "description": "Bandeja sintética del sistema de origen: retrasos, una corrección de ventas y una entrega inválida. Supuestos, no horarios observados de Favorita. UTC.",
+    "history_start": "2017-06-01",
+    "history_end": "2017-07-31",
+    "delivery_end": "auto",
+    "availability_hour_utc": 12,
+    "lag_days": {"train": 1, "stores": 0, "holidays_events": 1, "oil": 2, "transactions": 2},
+    "delays": [{"source": "transactions", "data_date": "2017-08-03", "extra_days": 2}],
+    "corrections": [{"source": "train", "data_date": "2017-08-07", "store_nbr": 44, "preliminary_factor": 0.4, "correction_lag_days": 3}],
+    "invalid_deliveries": [{"source": "oil", "data_date": "2017-08-09", "fix_lag_days": 1}]
+  },
+  "operation": {
+    "start_date": "2017-08-01",
+    "end_date": "2017-08-17",
+    "cutoff_hour_utc": 13
+  },
+  "baseline_config": "config/baseline.json",
+  "costs_config": "config/costs.json",
+  "paths": {
+    "originals": "dataOriginal",
+    "inbox": "data/scenarios/operacion-v1/inbox",
+    "ledger": "data/ingestion/operacion-v1.json",
+    "snapshots": "data/processed/operacion-v1",
+    "published": "data/published/operacion-v1",
+    "tracking": "data/tracking/operacion-v1"
+  }
+}

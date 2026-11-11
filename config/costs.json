@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenario_id": "academico-relativo-9-1-v1",
+  "description": "Supuesto académico de trabajo ante ausencia de costos reales: prioriza faltantes 9 a 1. No proviene de los CSV ni representa costos observados de Favorita.",
+  "cost_basis": "illustrative_relative",
+  "cost_unit": "relative_cost_unit",
+  "defaults": {"shortage_per_unit": 9.0, "excess_per_unit": 1.0},
+  "family_overrides": {},
+  "quantile_rule": "linear_interpolation_no_extrapolation",
+  "quantity_type": "daily_supply_target"
+}

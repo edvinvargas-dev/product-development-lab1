@@ -1,0 +1,6 @@
+outs:
+- path: data/scenarios/evaluacion-julio-v1/inbox
+  md5: ea4cab167a2fea2f5a7935d53820ca7b.dir
+  size: 4736539
+  nfiles: 250
+  hash: md5

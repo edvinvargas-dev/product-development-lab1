@@ -1,0 +1,154 @@
+# Laboratorio 1: motor de reposición de inventario
+
+Producto de ML que, en cada fecha de corte y sin intervención manual, transforma las entregas diarias de datos de Corporación Favorita en:
+
+1. **Pronóstico diario** por tienda y familia para los 7 días siguientes, con incertidumbre (cuantiles 0.1 / 0.5 / 0.9).
+2. **Pedido sugerido** (objetivo diario de abastecimiento) derivado del pronóstico y de los costos de faltante y merma de [`config/costs.json`](config/costs.json). Si cambian los costos, cambia la recomendación sin tocar el código.
+3. **Seguimiento del desempeño**: compara las publicaciones anteriores con las ventas reales a medida que se conocen, incluyendo las correcciones.
+
+Usa Git, DVC y Apache Airflow 3, de modo que cada publicación se puede rastrear hasta el código, los datos y el modelo que la produjeron. Las decisiones y su justificación están en [DECISIONES.md](DECISIONES.md), y el estado frente al enunciado en [docs/ACEPTACION.md](docs/ACEPTACION.md).
+
+## Levantar y ejecutar desde cero
+
+Requisitos: Docker con Compose v2 (Docker Desktop en Windows o macOS, o Docker Engine en Linux), unos 4 GB de RAM libres y Git. No hace falta instalar Python.
+
+```bash
+git clone https://github.com/edvinvargas-dev/product-development-lab1.git laboratorio1 && cd laboratorio1
+mkdir -p dataOriginal
+# Copiar a dataOriginal/ los cinco CSV de Kaggle (store-sales-time-series-forecasting):
+#   train.csv  stores.csv  holidays_events.csv  oil.csv  transactions.csv
+# (test.csv y sample_submission.csv no se usan)
+echo "AIRFLOW_UID=$(id -u)" > .env        # en Linux; en Windows/macOS basta copiar .env.example a .env
+docker compose up -d
+```
+
+Abrir <http://localhost:8080>. La interfaz no pide usuario: el SimpleAuthManager está en modo local con todos como administradores. Si el puerto está ocupado, se cambia con `AIRFLOW_PORT=8081` en `.env`.
+
+**No hay que hacer nada más.** Al levantar Compose:
+
+1. `bandeja_simulada` (productor, `@once`) genera la bandeja inmutable desde `dataOriginal/` según [`config/operacion.json`](config/operacion.json). Tarda alrededor de 1–2 minutos.
+2. `reposicion_diaria` (consumidor, `@daily`, `catchup=True`) espera a la bandeja y recorre cada día del periodo configurado, del 2017-08-01 al 2017-08-17, con estas tareas:
+
+```
+esperar_bandeja ─┐
+resolver_corte ──┴─> ingesta_y_validacion_entregas -> preparacion_snapshot -> validacion_cruzada
+                                                     -> pronostico_y_pedido -> seguimiento
+```
+
+Cada corte tarda alrededor de 1 minuto en una laptop. Las ejecuciones son secuenciales (`max_active_runs=1`).
+
+### Salidas
+
+| Ruta | Contenido |
+|---|---|
+| `data/scenarios/operacion-v1/inbox/` | Bandeja: un archivo por fuente, fecha y revisión, más `manifest.json`. Es externa e inmutable |
+| `data/ingestion/operacion-v1.json` | Registro de ingesta: `receipts` con `ingested_at` y `rejections` (cuarentena) |
+| `data/processed/operacion-v1/<día>/` | Snapshot de lo conocido en el corte, que es la entrada preparada para el modelo |
+| `data/published/operacion-v1/<día>/<id>/` | **Publicación inmutable**: `forecast.csv`, `orders.csv`, `model.json`, `validation.json`, `manifest.json` y `provenance.json` (commit de Git) |
+| `data/tracking/operacion-v1/<día>/report.md` | **Reporte de seguimiento** legible, junto con `tracking.json` |
+
+### Periodo nuevo o no publicado
+
+Para operar sobre otro periodo:
+1. Colocar los CSV con ese periodo en `dataOriginal/`.
+2. En `config/operacion.json`, cambiar `scenario_id` y las rutas `operacion-v1`, `history_end` (fin de la carga histórica inicial) y `operation.start_date` / `end_date`. `delivery_end: "auto"` toma la última fecha de ventas disponible. Los incidentes simulados que queden fuera del rango se ignoran.
+3. Volver a levantar: `docker compose up -d`. Si Airflow ya estaba arriba, se reinicia con `docker compose restart`.
+
+### Backfill y reprocesamiento
+
+```bash
+docker compose exec airflow-scheduler airflow backfill create --dag-id reposicion_diaria \
+  --from-date 2017-08-03 --to-date 2017-08-05 --reprocess-behavior completed
+```
+
+- **Backfill:** reconstruye lo que se sabía en cada corte (por `ingested_at`), sin reingestar. Si nada cambió, verifica las publicaciones byte a byte y no escribe nada.
+- **Cambio de entradas:** si cambiaron el código, los costos o lo conocido, crea una publicación nueva y conserva la anterior.
+- **Correcciones:** se reflejan automáticamente en el seguimiento de cortes posteriores, en el campo `corrections_applied`.
+
+### Situaciones de operación simuladas (`config/operacion.json`)
+
+| Situación | Qué hace el producto |
+|---|---|
+| Fuentes con distinta anticipación (ventas a 1 día, petróleo y transacciones a 2) | Solo usa lo disponible e ingerido antes del corte |
+| Transacciones del 2017-08-03 con 2 días extra de retraso | Aviso, sin falla y sin imputar valores |
+| Ventas del 2017-08-07 de la tienda 44 llegan al 40 % y se corrigen (r2) 3 días después | El pronóstico publicado no se reescribe; el seguimiento usa r2 al llegar |
+| Petróleo del 2017-08-09 con un valor negativo (r2 válida 1 día después) | Cuarentena en `rejections`; no entra al modelo y no detiene el flujo |
+| Días sin precio del petróleo, ventas cero y tiendas cerradas | Situaciones esperadas: solo avisos |
+| Archivo de la bandeja alterado (hash distinto) | Falla de integridad: detiene la ejecución |
+
+## Modelos, validación y criterio de sustitución
+
+- **Baseline (vigente):** cuantiles empíricos por día de semana con las últimas 4 semanas ([docs/BASELINE.md](docs/BASELINE.md)).
+- **ML (retador):** mantiene la mediana del baseline y aprende q10/q90 con `HistGradientBoostingRegressor` y pérdida de cuantiles, con 33 variables de las cinco fuentes ([docs/MODELO_ML.md](docs/MODELO_ML.md)).
+- **Validación temporal idéntica:** 4 cortes semanales de julio de 2017, mismos 49,896 casos, sin fuga de información ([docs/EVALUACION_TEMPORAL.md](docs/EVALUACION_TEMPORAL.md)).
+
+| Métrica (desarrollo, julio 2017) | Baseline | ML | Cambio |
+|---|---:|---:|---:|
+| Pinball medio | 22.27 | 21.13 | **−5.12 %** (mejor en 3 de 4 cortes) |
+| MAE / WAPE de la mediana | 61.23 / 0.1287 | igual | igual por diseño |
+| Cobertura del intervalo 80 % | 57.3 % | 64.2 % | más cerca del nominal |
+| Costo proxy 9:1 (negocio) | — | — | **−10.45 %** |
+
+**Criterio de sustitución** ([config/model-selection.json](config/model-selection.json), registrado antes de entrenar). Para pasar el corte técnico, el ML debe cumplir todo esto: pinball ≥ 5 % menor, mejor en ≥ 3 de 4 cortes, MAE sin aumento, cobertura no más lejos del 80 % y mismos casos completos. Para **reemplazar al vigente** debe cumplir además: holdout independiente, |cobertura − 0.80| ≤ 0.10 y costo de negocio no peor. Hoy el ML **pasa el corte técnico y gana en costo**, pero su cobertura (64 %) está fuera de la tolerancia y falta el holdout. Por eso el modelo vigente en Airflow sigue siendo el baseline, y el criterio no se rebajó después de ver los resultados (DECISIONES 12 y 16).
+
+Reproducir la comparación (imagen `ml` con scikit-learn):
+
+```bash
+docker compose -f compose.tools.yaml build tools ml
+docker compose -f compose.tools.yaml run --rm ml dvc repro model_comparison business_configured
+```
+
+## Costos
+
+En `config/costs.json`, el faltante vale 9 y el exceso o merma vale 1, en unidades relativas. Eso implica el cuantil crítico 9/(9+1) = 0.9. Es un **supuesto académico**: los CSV no contienen costos, márgenes ni inventario (DECISIONES 15). Se pueden definir excepciones por familia con `family_overrides`. Como no hay inventario disponible, la salida es un objetivo diario (`target_quantity`) y `net_order_quantity` queda vacío. No se inventa stock ([docs/PEDIDOS_Y_COSTOS.md](docs/PEDIDOS_Y_COSTOS.md)).
+
+## Versionado con DVC y reproducción de un pronóstico pasado
+
+Git no guarda datos ni modelos. El remoto DVC configurado es Google Drive (`.dvc/config`). Hoy están versionados con DVC:
+- originales (`dataOriginal.dvc`);
+- bandeja, registro y escenario de evaluación de desarrollo (`scenario.dvc`, `ingestion.dvc`, `evaluation-scenario.dvc`);
+- snapshots, modelos, pronósticos, evaluación y comparación de `dvc.yaml` / `dvc.lock`.
+
+**Pendiente:** versionar con DVC las salidas de la operación (`data/scenarios/operacion-v1`, `data/ingestion/operacion-v1.json`, `data/processed/`, `data/published/` y `data/tracking/`) y enviar los artefactos al remoto (`dvc push`). Hasta entonces, esas salidas solo existen en la copia local.
+
+Reproducir una publicación pasada a partir de su versión de código y de datos:
+
+```bash
+git checkout <commit-de-la-publicacion>   # versión del código (está en provenance.json)
+dvc pull                                  # versión de los datos (requiere acceso al remoto)
+docker compose -f compose.tools.yaml run --rm tools python -m src.operation reproduce --day 2017-08-05
+```
+
+`reproduce` reconstruye el snapshot del corte desde la bandeja y el registro versionados. Después reajusta el modelo, vuelve a pronosticar y a calcular el pedido en `data/reproduction/`, y compara cada archivo con la publicación original. Si todo coincide, termina con código 0.
+
+**Evidencia (2026-11-10, copia local):** se reprodujo la publicación `751908fb5128` del corte 2017-08-05. Los cinco archivos (`forecast.csv`, `orders.csv`, `model.json`, `validation.json` y `manifest.json`) son idénticos byte a byte (`"identical": true`, código de salida 0). Por ejemplo, `forecast.csv` tiene SHA-256 `e7d86b57…cdee20`. Falta repetir la prueba desde un clon limpio con `dvc pull`.
+
+## Pruebas y CI
+
+```bash
+docker compose -f compose.tools.yaml build tools
+docker compose -f compose.tools.yaml run --rm tools          # pytest
+python3 -m unittest discover -s tests -v                      # sin dependencias (WSL o Linux)
+```
+
+GitHub Actions ([.github/workflows/pruebas.yml](.github/workflows/pruebas.yml)) ejecuta pytest en cada Pull Request, incluidas las pruebas del ML. Todas usan datos sintéticos. **Pendiente:** verificar el workflow en GitHub y proteger `main`, para que los cambios entren solo por PR con las pruebas aprobadas.
+
+## Estructura
+
+```
+config/     operacion.json, baseline.json, costs.json, ml.json, model-selection.json, ...
+dags/       bandeja_simulada.py (productor), reposicion_diaria.py (consumidor): solo orquestan
+src/        operation.py (pasos por corte), simulate.py, ingest.py, snapshot.py, validate_snapshot.py,
+            baseline.py, ml.py, orders.py, tracking.py, metrics.py, evaluation.py, ...
+tests/      pruebas con datos sintéticos (ingesta, correcciones, idempotencia, modelos, pedidos, operación)
+docs/       tutoriales y aceptación;  docker/  imágenes de herramientas y ML
+docker-compose.yaml  Airflow 3.3.2 + PostgreSQL;  compose.tools.yaml  herramientas DVC/pytest/ML
+```
+
+## Recorridos de desarrollo anteriores
+
+Estos recorridos siguen disponibles y se documentan en sus tutoriales:
+- auditoría de originales (`python3 -m src.audit`);
+- ingesta temporal de demostración ([docs/INGESTA_TEMPORAL.md](docs/INGESTA_TEMPORAL.md));
+- entorno DVC local ([docs/ENTORNO_DVC.md](docs/ENTORNO_DVC.md));
+- notebook revisado (`notebooks/analisis_exploratorio_revisado.ipynb`).
