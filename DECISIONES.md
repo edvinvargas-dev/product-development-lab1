@@ -283,3 +283,14 @@ Son supuestos de prueba de la operación, no hechos de Favorita. Si un incidente
 **Seguimiento.** `src/tracking.py` produce `tracking.json` y `report.md` por corte. Incluye métricas técnicas (MAE, WAPE, pinball y cobertura del intervalo del 80 %) y el costo proxy 9:1 por publicación y global. Los reales pendientes no se tratan como cero.
 
 **Entorno.** `docker-compose.yaml` usa la imagen oficial `apache/airflow:3.3.2-python3.12`, PostgreSQL 16 y LocalExecutor. No hay construcción de imagen propia ni red de salida para el producto. `AIRFLOW_UID` y `AIRFLOW_PORT` se pueden configurar en `.env`.
+
+## 17. Limitación conocida del backfill: `latest.json` retrocede
+
+**Hallazgo (2026-11-10).** El backfill del 08-03 al 08-05 se comportó como se esperaba en lo importante: no volvió a ingerir nada (`mode: backfill`, `new_deliveries: 0`), detectó las publicaciones existentes (`already_published`) y dejó idénticos byte a byte 547 de los 548 archivos de salida. El único cambio fue `data/tracking/operacion-v1/latest.json`: `src/operation.py` lo escribe en cada corrida con el corte de esa corrida, sin comparar con el corte guardado. Por eso pasó del 08-17 al 08-05.
+
+**Decisión: documentar, no corregir.** La corrección es pequeña: escribir el puntero solo si el corte es igual o posterior al guardado. Pero cambiaría la huella de `src/`, y con ella el identificador de las publicaciones. Las 17 publicaciones versionadas y la reproducción desde un clon limpio dejarían de corresponder al código final, y habría que regenerarlas. Se optó por conservar la evidencia actual.
+
+**Alcance del defecto.** No afecta pronósticos, pedidos, snapshots, el registro de ingesta ni los reportes por corte (`<día>/tracking.json` y `<día>/report.md`), que son las salidas inmutables o deterministas. Solo afecta al puntero de conveniencia "último reporte".
+
+**Mitigación.** Tras un backfill, restaurar el puntero desde la versión DVC con `docker compose -f compose.tools.yaml run --rm tools dvc checkout --force operacion-seguimiento.dvc`. También puede corregirse a mano para que apunte al corte más reciente de `data/tracking/<escenario>/`. Así se hizo el 2026-11-10 (vuelve a apuntar al 08-17).
+
