@@ -19,7 +19,7 @@ Fuente: `Laboratorio_1_PD_26.pdf`, cuatro páginas, leído desde Downloads. List
 - [x] Baseline y ML híbrido que mejora pinball con validación temporal idéntica de desarrollo; calibración/holdout y negocio pendientes (p. 3).
 - [x] Métricas técnicas y de costo, criterio explícito de sustitución (p. 3). Pinball, MAE, WAPE, cobertura y costo proxy 9:1; criterio en `config/model-selection.json`.
 - [ ] README completo y decisiones justificadas sobre disponibilidad, validación y correcciones (p. 3).
-- [ ] Ejecución sobre período no publicado sin intervención manual (p. 3).
+- [x] Ejecución sobre período no publicado sin intervención manual (p. 3). Clon limpio con una instalación nueva de Airflow: período del 2017-06-01 al 06-07 (`operacion-junio-v1`), 7 cortes en `success` con solo `config/operacion.json` modificado (2026-11-11). Evidencia en `docs/evidencia/periodo-junio-2017.md`. Requiere vaciar `delays` fuera del rango (README).
 - [ ] Evidencia de UI Airflow, comparación de modelos y seguimiento (p. 4).
 - [ ] Repositorio accesible al equipo docente y tag `entrega-lab1` tras verificación final (p. 3–4).
 
@@ -48,7 +48,6 @@ Actualización de costos: el usuario confirmó que no dispone de costos reales y
 Avance de la etapa 8: operación con Airflow 3 (productor `bandeja_simulada` y consumidor diario `reposicion_diaria`), publicaciones inmutables con procedencia, cuarentena, correcciones y seguimiento. La reproducción local de la publicación del 2017-08-05 fue idéntica. Pendientes:
 - definir y documentar el acceso del equipo docente al remoto Drive (carpeta compartida y cliente OAuth);
 - publicar en GitHub con CI y protección de `main`;
-- período no publicado;
 - capturas de la interfaz y tag de entrega.
 
 `dvc.lock` regenerado con `dvc repro` en la imagen `ml` (2026-11-10). Las 11 etapas dependían del `src/ingest.py` modificado en `ddb8e1d`. Ningún hash de salida cambió, así que los resultados de evaluación, comparación, pedidos y negocio no se ven afectados.
